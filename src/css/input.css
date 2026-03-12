@@ -45,3 +45,7 @@
     @apply bg-white rounded-lg shadow-xl overflow-hidden transform transition-all sm:max-w-2xl sm:w-full z-50 max-h-[90vh] flex flex-col;
   }
 }
+
+.cp{
+  cursor: pointer !important;
+}

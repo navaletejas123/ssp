@@ -844,9 +844,32 @@
                             <label class="block text-sm font-medium text-gray-700">Enquiry Date</label>
                             <input type="date" id="e-date" class="input-field" required>
                         </div>
+                        <!-- <div>
+                            <label class="block text-xl font-medium text-gray-700">Follow-up Date</label>
+                            <input type="date" id="e-follow" class="input-field">
+                        </div> -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Follow-up Date</label>
-                            <input type="date" id="e-follow" class="input-field">
+                            <div class="flex items-center gap-2 mt-1">
+                                <input type="date" id="e-follow" class="input-field !mt-0 flex-1">
+                                <div class="flex  gap-2">
+                                    <button type="button" data-months-shortcut="1"
+                                        class="px-2 py-2  bg-white border border-gray-300 text-xs font-bold text-gray-600 rounded-l-md hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200 transition-all cp whitespace-nowrap"
+                                        title="Add 1 Month">
+                                        1
+                                    </button>
+                                    <button type="button" data-months-shortcut="2"
+                                        class="px-2 py-2  bg-white border border-gray-300 text-xs font-bold text-gray-600 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200 transition-all cp whitespace-nowrap"
+                                        title="Add 2 Months">
+                                        2
+                                    </button>
+                                    <button type="button" data-months-shortcut="3"
+                                        class="px-2 py-2  bg-white border border-gray-300 text-xs font-bold text-gray-600 rounded-r-md hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200 transition-all cp whitespace-nowrap"
+                                        title="Add 3 Months">
+                                        3
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Counselor Name</label>

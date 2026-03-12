@@ -113,6 +113,14 @@ function renderTherapistChart(data) {
     });
 }
 
+// Utility to format date to dd-mm-yyyy
+function formatDate(date) {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return date; // Return original if invalid
+    return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+}
+
 function renderTopCustomers(data) {
     const tbody = document.getElementById('top-customers-list');
     if (!tbody) return;
@@ -406,7 +414,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Event delegation for enquiries table action buttons
+    // Event delegation for enquiry followup shortcuts
+    document.querySelectorAll('[data-months-shortcut]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const months = parseInt(btn.getAttribute('data-months-shortcut'));
+            const enquiryDateVal = document.getElementById('e-date').value;
+            if (!enquiryDateVal) return;
+
+            const date = new Date(enquiryDateVal);
+            date.setMonth(date.getMonth() + months);
+
+            // Format to YYYY-MM-DD for date input
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            document.getElementById('e-follow').value = `${yyyy}-${mm}-${dd}`;
+        });
+    });
+
+    // Event delegation for enquiry table action buttons
     const enquiriesTableBody = document.getElementById('enquiries-table-body');
     if (enquiriesTableBody) {
         enquiriesTableBody.addEventListener('click', (e) => {
@@ -465,8 +491,7 @@ async function loadRecentVisits(searchQuery = currentVisitSearchQuery) {
         const srNo = (currentVisitPage - 1) * visitItemsPerPage + (index + 1);
 
         // Format Date to dd-mm-yyyy
-        const dateObj = new Date(v.visit_date);
-        const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${dateObj.getFullYear()}`;
+        const formattedDate = formatDate(v.visit_date);
 
         const isGuest = v.phone && v.phone.startsWith('GUEST-');
         const displayPhone = isGuest ? '-' : v.phone;
@@ -559,9 +584,7 @@ async function viewVisit(customerId) {
     }
 
     visits.forEach(v => {
-        // Format Date to dd-mm-yyyy
-        const dateObj = new Date(v.visit_date);
-        const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${dateObj.getFullYear()}`;
+        const formattedDate = formatDate(v.visit_date);
 
         tbody.innerHTML += `
             <tr>
@@ -770,9 +793,7 @@ async function loadEnquiries(searchQuery = currentEnquirySearchQuery) {
         const displayPhone = isGuest ? '-' : e.phone;
         const displayName = isGuest && e.customer_name === 'Walk-in' ? 'Walk-in' : e.customer_name;
 
-        // Format Date to dd-mm-yyyy
-        const dateObj = new Date(e.enquiry_date);
-        const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${dateObj.getFullYear()}`;
+        const formattedDate = formatDate(e.enquiry_date);
 
         tbody.innerHTML += `
             <tr>
@@ -894,11 +915,11 @@ async function loadCalls() {
     items.forEach(c => {
         tbody.innerHTML += `
             <tr>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(c.call_date).toLocaleDateString()}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(c.call_date)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${c.customer_name}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.phone}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.purpose}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.next_follow_up ? new Date(c.next_follow_up).toLocaleDateString() : '-'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.next_follow_up ? formatDate(c.next_follow_up) : '-'}</td>
             </tr>
         `;
     });
@@ -942,7 +963,7 @@ async function loadExpenses() {
     items.forEach(ex => {
         tbody.innerHTML += `
             <tr>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(ex.expense_date).toLocaleDateString()}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(ex.expense_date)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${ex.category}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">₹${ex.amount}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${ex.remarks || '-'}</td>
@@ -994,7 +1015,7 @@ async function loadSmartRecall() {
             <tr>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${c.name}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.phone}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-500 font-semibold">${new Date(c.last_visit).toLocaleDateString()}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-500 font-semibold">${formatDate(c.last_visit)}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.total_visits}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                     <button class="btn-primary text-xs" onclick="recordCallFromRecall('${c.name}', '${c.phone}')">
@@ -1078,7 +1099,7 @@ async function viewCustomerDetails(id) {
     visits.forEach(v => {
         tbody.innerHTML += `
             <tr>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${new Date(v.visit_date).toLocaleDateString()}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${formatDate(v.visit_date)}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${v.therapist_name || '-'}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${v.package_name}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">₹${v.package_price}</td>
