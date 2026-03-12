@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spa Center Management System</title>
+    <!-- Compiled Tailwind CSS will be linked here -->
+    <link rel="stylesheet" href="./src/css/output.css">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="./node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+</head>
+
+<body class="flex bg-gray-50 h-screen overflow-hidden text-gray-800">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-primary-900 text-white flex flex-col hidden md:flex">
+        <div class="h-16 flex items-center justify-center border-b border-primary-800">
+            <h1 class="text-xl font-bold tracking-wider"><i class="fas fa-spa text-primary-400 mr-2"></i> SSP ADMIN</h1>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto py-4">
+            <ul class="space-y-1">
+                <li>
+                    <a href="#"
+                        class="nav-item active flex items-center px-6 py-3 text-primary-100 hover:bg-primary-800 hover:text-white transition-colors"
+                        data-target="dashboard">
+                        <i class="fas fa-chart-line w-6 text-center"></i>
+                        <span class="ml-3">Dashboard</span>
+                    </a>
+                </li>
+                <li class="pt-4 pb-2 px-6 text-xs font-semibold text-primary-400 uppercase tracking-wider">
+                    Customers & Staff
+                </li>
+                <li>
+                    <a href="#"
+                        class="nav-item flex items-center px-6 py-3 text-primary-100 hover:bg-primary-800 hover:text-white transition-colors"
+                        data-target="visit-entry">
+                        <i class="fas fa-calendar-check w-6 text-center"></i>
+                        <span class="ml-3">New Entry</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#"
+                        class="nav-item flex items-center px-6 py-3 text-primary-100 hover:bg-primary-800 hover:text-white transition-colors"
+                        data-target="customer-history">
+                        <i class="fas fa-users w-6 text-center"></i>
+                        <span class="ml-3">Customer History</span>
+                    </a>
+                </li>
+                <li class="pt-4 pb-2 px-6 text-xs font-semibold text-primary-400 uppercase tracking-wider">
+                    CRM & Leads
+                </li>
+                <li>
+                    <a href="#"
+                        class="nav-item flex items-center px-6 py-3 text-primary-100 hover:bg-primary-800 hover:text-white transition-colors"
+                        data-target="enquiries">
+                        <i class="fas fa-clipboard-list w-6 text-center"></i>
+                        <span class="ml-3">Enquiries</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#"
+                        class="nav-item flex items-center px-6 py-3 text-primary-100 hover:bg-primary-800 hover:text-white transition-colors"
+                        data-target="calls">
+                        <i class="fas fa-phone-alt w-6 text-center"></i>
+                        <span class="ml-3">Lead Follow-up</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#"
+                        class="nav-item flex items-center px-6 py-3 text-primary-100 hover:bg-primary-800 hover:text-white transition-colors"
+                        data-target="smart-recall">
+                        <i class="fas fa-bell w-6 text-center"></i>
+                        <span class="ml-3">Smart Recall</span>
+                    </a>
+                </li>
+                <li class="pt-4 pb-2 px-6 text-xs font-semibold text-primary-400 uppercase tracking-wider">
+                    Finance
+                </li>
+                <li>
+                    <a href="#"
+                        class="nav-item flex items-center px-6 py-3 text-primary-100 hover:bg-primary-800 hover:text-white transition-colors"
+                        data-target="expenses">
+                        <i class="fas fa-wallet w-6 text-center"></i>
+                        <span class="ml-3">Expenses</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- Header -->
+        <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 z-10">
+            <div class="flex items-center">
+                <button class="md:hidden text-gray-500 hover:text-gray-700 focus:outline-none">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h2 id="page-title" class="text-xl font-semibold text-gray-800 ml-4 md:ml-0">Dashboard</h2>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-500" id="current-date-time"></span>
+            </div>
+        </header>
+
+        <!-- Page Content Container -->
+        <div class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6" id="main-content">
+
+            <!-- Views will be loaded here dynamically -->
+            <div id="view-dashboard" class="page-view">
+                <!-- Dashboard Content Placeholder -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="card p-6 border-l-4 border-primary-500">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-primary-100 text-primary-600">
+                                <i class="fas fa-users text-2xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Total Customers</p>
+                                <p class="text-2xl font-semibold text-gray-900">--</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6 border-l-4 border-green-500">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                                <i class="fas fa-rupee-sign text-2xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Total Revenue</p>
+                                <p class="text-2xl font-semibold text-gray-900">--</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6 border-l-4 border-purple-500">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                                <i class="fas fa-chart-pie text-2xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Avg Spending</p>
+                                <p class="text-2xl font-semibold text-gray-900" id="dash-avg">--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="card p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Revenue Trend</h3>
+                        <div class="relative h-[250px] w-full">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Therapist Performance</h3>
+                        <div class="relative h-[250px] w-full">
+                            <canvas id="therapistChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="card p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Top Customers</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                            Customer</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                            Visits</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                            Spent</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="top-customers-list" class="bg-white divide-y divide-gray-200">
+                                    <!-- JS Populate -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-visit-entry" class="page-view hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <h3 class="text-lg font-medium text-gray-900">Records</h3>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-64">
+                            <input type="text" id="v-search" list="v-search-list" class="input-field pl-10"
+                                placeholder="Search name or phone..."
+                                onkeyup="if(event.key === 'Enter') searchVisits()">
+                            <datalist id="v-search-list"></datalist>
+                        </div>
+                        <button class="btn-primary whitespace-nowrap" onclick="openVisitModal()">
+                            <i class="fas fa-plus mr-2"></i> New Visit
+                        </button>
+                    </div>
+                </div>
+                <div class="card p-0 flex flex-col min-h-[500px]">
+                    <div class="flex-1 overflow-x-auto p-4">
+                        <table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-sm">
+                            <thead class="bg-gray-100 border-b border-gray-300">
+                                <tr>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Sr. No.</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Date</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Customer Name</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Phone Number</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Therapist</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Total Amount</th>
+                                    <th
+                                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="visits-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- populate dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination Container -->
+                    <div
+                        class="border-t border-gray-200 bg-white px-4 py-3 sm:px-6 flex items-center justify-between mt-auto">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <button id="v-prev-mobile"
+                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                onclick="changeVisitPage(-1)">Previous</button>
+                            <button id="v-next-mobile"
+                                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                onclick="changeVisitPage(1)">Next</button>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-end">
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                                    aria-label="Pagination">
+                                    <button id="v-prev-btn"
+                                        class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                                        onclick="changeVisitPage(-1)">
+                                        <span class="sr-only">Previous</span>
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <div id="v-page-numbers" class="flex">
+                                        <!-- Page Numbers populated via JS -->
+                                    </div>
+                                    <button id="v-next-btn"
+                                        class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                                        onclick="changeVisitPage(1)">
+                                        <span class="sr-only">Next</span>
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enquiries View -->
+            <div id="view-enquiries" class="page-view hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <h3 class="text-lg font-medium text-gray-900">Enquiry Management</h3>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-64">
+                            <input type="text" id="e-search" list="e-search-list" class="input-field pl-10"
+                                placeholder="Search name or phone..."
+                                onkeyup="if(event.key === 'Enter') searchEnquiries()">
+                            <datalist id="e-search-list"></datalist>
+                        </div>
+                        <button class="btn-primary whitespace-nowrap" onclick="openModal('enquiry-modal')">
+                            <i class="fas fa-plus mr-2"></i> New Enquiry
+                        </button>
+                    </div>
+                </div>
+                <div class="card p-0 flex flex-col min-h-[500px]">
+                    <div class="flex-1 overflow-x-auto p-4">
+                        <table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-sm">
+                            <thead class="bg-gray-100 border-b border-gray-300">
+                                <tr>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Date</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Customer</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Phone</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Service</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status</th>
+                                    <th
+                                        class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="enquiries-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- populate dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination Container -->
+                    <div
+                        class="border-t border-gray-200 bg-white px-4 py-3 sm:px-6 flex items-center justify-between mt-auto">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <button id="e-prev-mobile"
+                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                onclick="changeEnquiryPage(-1)">Previous</button>
+                            <button id="e-next-mobile"
+                                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                onclick="changeEnquiryPage(1)">Next</button>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-end">
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                                    aria-label="Pagination">
+                                    <button id="e-prev-btn"
+                                        class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                                        onclick="changeEnquiryPage(-1)">
+                                        <span class="sr-only">Previous</span>
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <div id="e-page-numbers" class="flex">
+                                        <!-- Page Numbers populated via JS -->
+                                    </div>
+                                    <button id="e-next-btn"
+                                        class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                                        onclick="changeEnquiryPage(1)">
+                                        <span class="sr-only">Next</span>
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calls View -->
+            <div id="view-calls" class="page-view hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-medium text-gray-900">Lead Follow-ups / Calling</h3>
+                    <button class="btn-primary" onclick="openModal('call-modal')">
+                        <i class="fas fa-plus mr-2"></i> Record Call
+                    </button>
+                </div>
+                <div class="card p-0">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Call Date
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Purpose</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Next
+                                    Follow-up</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calls-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- populate dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Expenses View -->
+            <div id="view-expenses" class="page-view hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-medium text-gray-900">Expense Management</h3>
+                    <button class="btn-primary" onclick="openModal('expense-modal')">
+                        <i class="fas fa-plus mr-2"></i> Add Expense
+                    </button>
+                </div>
+                <div class="card p-0">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenses-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- populate dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Smart Recall View -->
+            <div id="view-smart-recall" class="page-view hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-medium text-gray-900">Smart Recall (Inactive Customers)</h3>
+                    <div class="text-sm text-gray-500">
+                        Customers who haven't visited in 30+ days
+                    </div>
+                </div>
+                <div class="card p-0">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer
+                                    Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Visit
+                                    Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Visits
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recall-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- populate dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Customer History View -->
+            <div id="view-customer-history" class="page-view hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-medium text-gray-900">Customer History</h3>
+                </div>
+
+                <div class="card mb-6">
+                    <div class="flex gap-4">
+                        <div class="flex-1">
+                            <input type="text" id="ch-search" class="input-field"
+                                placeholder="Search by name or phone number..."
+                                onkeyup="if(event.key === 'Enter') searchCustomers()">
+                        </div>
+                        <button class="btn-primary" onclick="searchCustomers()">
+                            Search
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Search Results -->
+                    <div class="md:col-span-1 border-r pr-6" id="ch-results-container">
+                        <h4 class="text-sm font-medium text-gray-500 mb-4 uppercase tracking-wider">Search Results</h4>
+                        <div id="ch-results-list" class="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                            <!-- Populated dynamically -->
+                            <p class="text-sm text-gray-500 italic">Enter a search query...</p>
+                        </div>
+                    </div>
+
+                    <!-- Customer Details Panel -->
+                    <div class="md:col-span-2 hidden" id="ch-details-panel">
+                        <div class="bg-gray-50 rounded p-4 mb-4 border flex justify-between items-start">
+                            <div>
+                                <h4 class="text-xl font-bold text-gray-900" id="ch-det-name">Customer Name</h4>
+                                <p class="text-sm text-gray-500" id="ch-det-phone">+91 0000000000</p>
+                            </div>
+                            <div class="text-right flex flex-col items-end">
+                                <div>
+                                    <span id="ch-det-vip"
+                                        class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 hidden mb-2">VIP</span>
+                                </div>
+                                <button class="btn-secondary text-xs px-2 py-1 flex items-center mb-2"
+                                    onclick="openMergeModal()">
+                                    <i class="fas fa-object-group mr-1"></i> Merge Duplicate
+                                </button>
+                                <p class="text-sm font-medium text-gray-700">Total Spent: <span
+                                        class="text-green-600 font-bold" id="ch-det-spent">₹0</span></p>
+                            </div>
+                        </div>
+
+                        <h4 class="text-md font-medium text-gray-900 mb-3">Customer History</h4>
+                        <div class="card p-0 h-[45vh] overflow-y-auto overflow-x-auto border">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Date</th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Therapist</th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Package Name</th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Package Price</th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Extra Services</th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Extra Amount</th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Total Paid</th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Payment Method</th>
+                                        <th
+                                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ch-visits-body" class="bg-white divide-y divide-gray-200">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other views (hidden by default) -->
+
+        </div>
+    </main>
+
+    <!-- Global Modals Container -->
+    <div id="modals-container">
+        <!-- Visit Entry Modal -->
+        <div id="visit-modal" class="popup-overlay hidden">
+            <div class="popup-content">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h3 class="text-lg font-medium text-gray-900">New Customer Visit</h3>
+                    <button class="text-gray-400 hover:text-gray-500 focus:outline-none"
+                        onclick="closeModal('visit-modal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="px-6 py-4 overflow-y-auto max-h-[70vh]">
+                    <form id="visit-form" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Datalists for autocomplete -->
+                            <datalist id="customer-phones-list"></datalist>
+                            <datalist id="customer-names-list"></datalist>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                                <input type="text" id="v-phone" list="customer-phones-list" autocomplete="off"
+                                    class="input-field" placeholder="Search or Enter new">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Customer Name</label>
+                                <input type="text" id="v-name" list="customer-names-list" autocomplete="off"
+                                    class="input-field">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Visit Date</label>
+                                <input type="date" id="v-date" class="input-field">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Assigned Therapist</label>
+                                <input type="text" id="v-therapist" class="input-field"
+                                    placeholder="Enter therapist name">
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-4 mt-4">
+                            <h4 class="text-md font-medium text-gray-800 mb-3">Service Details</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Package Name</label>
+                                    <input type="text" id="v-package" class="input-field">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Package Price</label>
+                                    <input type="number" id="v-price" class="input-field">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Extra Services</label>
+                                    <datalist id="extra-options">
+                                        <option value="Full">Full</option>
+                                        <option value="Half">Half</option>
+                                        <option value="Yes">Yes</option>
+                                        <option value="No">No</option>
+                                    </datalist>
+                                    <input type="text" id="v-extra-services" list="extra-options" autocomplete="off"
+                                        class="input-field" placeholder="Select or type (Full/Half/Yes/No)">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Extra Services Amount</label>
+                                    <input type="number" id="v-extra-price" class="input-field" value="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-4 mt-4">
+                            <h4 class="text-md font-medium text-gray-800 mb-3">Payment Info</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Total Paid Amount</label>
+                                    <input type="number" id="v-paid" class="input-field font-bold text-green-600">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Payment Method</label>
+                                    <select id="v-method" class="input-field" onchange="toggleOnlinePaymentFields()">
+                                        <option value="Cash">Cash</option>
+                                        <option value="Online">Online</option>
+                                        <option value="Both">Both (Cash + Online)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <!-- Online Payment Extra Fields -->
+                            <div id="v-online-fields"
+                                class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 hidden bg-gray-50 p-3 rounded border">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Payment App</label>
+                                    <select id="v-app" class="input-field">
+                                        <option value="UPI">UPI (GPay/PhonePe/Paytm)</option>
+                                        <option value="Wallet">Wallet</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Transaction ID</label>
+                                    <input type="text" id="v-txn" class="input-field">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700">Customer Notes / Special
+                                Demands / Customer Complaints</label>
+                            <textarea id="v-notes" rows="2" class="input-field"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
+                    <button type="button" class="btn-secondary" onclick="closeVisitModal()">Cancel</button>
+                    <button type="button" class="btn-primary" onclick="saveVisit()">Save Visit</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visit View Modal (Read Only Details + History) -->
+        <div id="visit-view-modal" class="popup-overlay hidden z-50">
+            <div class="popup-content max-w-4xl">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h3 class="text-lg font-medium text-gray-900">Customer Details & History</h3>
+                    <button class="text-gray-400 hover:text-gray-500 focus:outline-none"
+                        onclick="closeModal('visit-view-modal')">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="px-6 py-4 overflow-y-auto max-h-[70vh]">
+                    <div
+                        class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 flex justify-between items-center">
+                        <div>
+                            <h4 id="vv-name" class="text-xl font-bold text-gray-900">--</h4>
+                            <p id="vv-phone" class="text-gray-600">--</p>
+                        </div>
+                        <div class="text-right">
+                            <span id="vv-vip"
+                                class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-semibold hidden">VIP</span>
+                            <div class="mt-2 text-sm text-gray-500">Total Visits: <span id="vv-visits"
+                                    class="font-bold text-gray-900">0</span></div>
+                            <div class="text-sm text-gray-500">Total Spent: <span id="vv-spent"
+                                    class="font-bold text-green-600">₹0</span></div>
+                        </div>
+                    </div>
+
+                    <h4 class="text-md font-semibold text-gray-800 mb-3 border-b pb-2">Visit History</h4>
+                    <div class="overflow-x-auto border rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Date</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Therapist</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Package</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vv-history-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+                    <button type="button" class="btn-primary" onclick="closeModal('visit-view-modal')">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Dialog Modal (replaces native prompt()) -->
+    <div id="pwd-modal" class="popup-overlay hidden" style="z-index:9999">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-80">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3" id="pwd-modal-title">Enter Password</h3>
+            <input type="password" id="pwd-modal-input" class="input-field mb-4" placeholder="Password"
+                autocomplete="off">
+            <p id="pwd-modal-error" class="text-red-500 text-sm mb-3 hidden">Incorrect password. Try again.</p>
+            <div class="flex justify-end space-x-2">
+                <button class="btn-secondary" id="pwd-modal-cancel">Cancel</button>
+                <button class="btn-primary" id="pwd-modal-confirm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    </div>
+    </div>
+
+    <!-- Global Alert Dialog Modal -->
+    <div id="alert-modal" class="popup-overlay hidden" style="z-index:10000">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-80 text-center">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3" id="alert-modal-title">Notice</h3>
+            <p id="alert-modal-msg" class="text-sm text-gray-600 mb-4"></p>
+            <div class="flex justify-center">
+                <button class="btn-primary" id="alert-modal-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Confirm Dialog Modal -->
+    <div id="confirm-modal" class="popup-overlay hidden" style="z-index:10000">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-80 text-center">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3" id="confirm-modal-title">Confirm</h3>
+            <p id="confirm-modal-msg" class="text-sm text-gray-600 mb-4"></p>
+            <div class="flex justify-center space-x-3">
+                <button class="btn-secondary" id="confirm-modal-cancel">Cancel</button>
+                <button class="btn-primary" style="background-color: #dc2626; border-color: #dc2626;"
+                    id="confirm-modal-ok">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enquiry View Modal (Read Only) -->
+    <div id="enquiry-view-modal" class="popup-overlay hidden">
+        <div class="popup-content">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-medium text-gray-900">Enquiry Details</h3>
+                <button class="text-gray-400 hover:text-gray-500 focus:outline-none"
+                    onclick="closeModal('enquiry-view-modal')">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="px-6 py-4 overflow-y-auto max-h-[70vh]">
+                <form class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Customer Name</label>
+                            <input type="text" id="ev-name"
+                                class="input-field bg-gray-100 placeholder-gray-500 font-medium" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                            <input type="text" id="ev-phone"
+                                class="input-field bg-gray-100 placeholder-gray-500 font-medium" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Enquiry Date</label>
+                            <input type="date" id="ev-date"
+                                class="input-field bg-gray-100 placeholder-gray-500 font-medium" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Follow-up Date</label>
+                            <input type="date" id="ev-follow"
+                                class="input-field bg-gray-100 placeholder-gray-500 font-medium" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Counselor Name</label>
+                            <input type="text" id="ev-counselor"
+                                class="input-field bg-gray-100 placeholder-gray-500 font-medium" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Source</label>
+                            <input type="text" id="ev-source"
+                                class="input-field bg-gray-100 placeholder-gray-500 font-medium" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Status</label>
+                            <input type="text" id="ev-status"
+                                class="input-field bg-gray-100 placeholder-gray-500 font-medium" disabled>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Service Interested In</label>
+                        <input type="text" id="ev-service"
+                            class="input-field bg-gray-100 placeholder-gray-500 font-medium" disabled>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Description / Requirements</label>
+                        <textarea id="ev-desc" rows="2" class="input-field bg-gray-100 placeholder-gray-500 font-medium"
+                            disabled></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+                <button type="button" class="btn-primary" onclick="closeModal('enquiry-view-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enquiry Modal -->
+    <div id="enquiry-modal" class="popup-overlay hidden">
+        <div class="popup-content">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-medium text-gray-900">New Enquiry</h3>
+                <button class="text-gray-400 hover:text-gray-500 focus:outline-none"
+                    onclick="closeModal('enquiry-modal')">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="px-6 py-4 overflow-y-auto max-h-[70vh]">
+                <form id="enquiry-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Customer Name</label>
+                            <input type="text" id="e-name" class="input-field" list="customer-names-list">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                            <input type="text" id="e-phone" class="input-field" list="customer-phones-list">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Enquiry Date</label>
+                            <input type="date" id="e-date" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Follow-up Date</label>
+                            <input type="date" id="e-follow" class="input-field">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Counselor Name</label>
+                            <input type="text" id="e-counselor" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Source</label>
+                            <input type="text" id="e-source" list="e-source-list" class="input-field"
+                                placeholder="Select or type source">
+                            <datalist id="e-source-list">
+                                <option value="Walk-in"></option>
+                                <option value="Phone Call"></option>
+                                <option value="WhatsApp"></option>
+                                <option value="Social Media"></option>
+                                <option value="Website"></option>
+                            </datalist>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Service Interested In</label>
+                        <input type="text" id="e-service" class="input-field" placeholder="e.g. Deep Tissue Massage">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Description / Requirements</label>
+                        <textarea id="e-desc" rows="2" class="input-field"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
+                <button type="button" class="btn-secondary" onclick="closeModal('enquiry-modal')">Cancel</button>
+                <button type="button" class="btn-primary" onclick="saveEnquiry()">Save Enquiry</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call Modal -->
+    <div id="call-modal" class="popup-overlay hidden">
+        <div class="popup-content">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-medium text-gray-900">Record Call</h3>
+                <button class="text-gray-400 hover:text-gray-500 focus:outline-none" onclick="closeModal('call-modal')">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="px-6 py-4 overflow-y-auto max-h-[70vh]">
+                <form id="call-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Customer Name</label>
+                            <input type="text" id="c-name" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                            <input type="text" id="c-phone" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Call Date</label>
+                            <input type="date" id="c-date" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Counselor Name</label>
+                            <input type="text" id="c-counselor" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Call Purpose</label>
+                            <select id="c-purpose" class="input-field">
+                                <option value="Enquiry Follow-up">Enquiry Follow-up</option>
+                                <option value="Feedback Collection">Feedback Collection</option>
+                                <option value="Promotional Offer">Promotional Offer</option>
+                                <option value="Appointment Reminder">Appointment Reminder</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Next Follow-up Date</label>
+                            <input type="date" id="c-follow" class="input-field">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Call Notes</label>
+                        <textarea id="c-notes" rows="3" class="input-field"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
+                <button type="button" class="btn-secondary" onclick="closeModal('call-modal')">Cancel</button>
+                <button type="button" class="btn-primary" onclick="saveCall()">Save Record</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div id="expense-modal" class="popup-overlay hidden">
+        <div class="popup-content">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-medium text-gray-900">Add Expense</h3>
+                <button class="text-gray-400 hover:text-gray-500 focus:outline-none"
+                    onclick="closeModal('expense-modal')">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="px-6 py-4 overflow-y-auto max-h-[70vh]">
+                <form id="expense-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Date</label>
+                            <input type="date" id="ex-date" class="input-field" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Category</label>
+                            <select id="ex-category" class="input-field">
+                                <option value="Staff Salary">Staff Salary</option>
+                                <option value="Oil / Products">Oil / Products</option>
+                                <option value="Rent">Rent</option>
+                                <option value="Utilities">Utilities</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Amount (₹)</label>
+                            <input type="number" id="ex-amount" class="input-field font-bold text-red-600" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Remarks / Description</label>
+                        <textarea id="ex-remarks" rows="2" class="input-field"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
+                <button type="button" class="btn-secondary" onclick="closeModal('expense-modal')">Cancel</button>
+                <button type="button" class="btn-primary" onclick="saveExpense()">Save Expense</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merge Customer Modal -->
+    <div id="merge-modal" class="popup-overlay hidden" style="z-index:9000">
+        <div class="popup-content w-full max-w-lg">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-medium text-gray-900">Merge Duplicate Customer</h3>
+                <button class="text-gray-400 hover:text-gray-500 focus:outline-none"
+                    onclick="closeModal('merge-modal')">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="px-6 py-4">
+                <div class="mb-4 p-3 bg-blue-50 text-blue-800 rounded border border-blue-200 text-sm">
+                    <strong>Primary Account:</strong> <span id="m-primary-name" class="font-bold">--</span>
+                    (<span id="m-primary-phone">--</span>)
+                </div>
+
+                <p class="text-sm text-gray-600 mb-2">Search for the duplicate account to merge <strong>INTO</strong>
+                    this primary account. The duplicate account will be deleted and all its history transferred.</p>
+
+                <div class="relative w-full mb-4">
+                    <input type="text" id="m-search" list="m-search-list" class="input-field pl-10"
+                        placeholder="Search duplicate name or phone...">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    <datalist id="m-search-list"></datalist>
+                </div>
+
+                <div id="m-target-details"
+                    class="hidden p-3 bg-red-50 text-red-800 rounded border border-red-200 text-sm">
+                    <strong>Duplicate Account Found:</strong> <span id="m-target-name" class="font-bold">--</span>
+                    (<span id="m-target-phone">--</span>)
+                </div>
+                <!-- Hidden IDs for the merge operation -->
+                <input type="hidden" id="m-primary-id">
+                <input type="hidden" id="m-target-id">
+
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
+                <button type="button" class="btn-secondary" onclick="closeModal('merge-modal')">Cancel</button>
+                <button type="button" class="btn-primary bg-red-600 hover:bg-red-700 border-red-600"
+                    id="btn-confirm-merge" onclick="confirmMerge()" disabled>Confirm Merge</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Logic -->
+    <script src="./node_modules/chart.js/dist/chart.umd.js"></script>
+    <script src="./src/js/app.js"></script>
+</body>
+
+</html>

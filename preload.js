@@ -1,0 +1,25 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('api', {
+    getDashboardStats: (filter) => ipcRenderer.invoke('get-dashboard-stats', filter),
+    getTherapistStats: (filter) => ipcRenderer.invoke('get-therapist-stats', filter),
+    getTopCustomers: () => ipcRenderer.invoke('get-top-customers'),
+    getTherapists: () => ipcRenderer.invoke('get-therapists'),
+    addVisit: (data) => ipcRenderer.invoke('add-visit', data),
+    getVisits: (page = 1, limit = 10, searchQuery = '') => ipcRenderer.invoke('get-visits', page, limit, searchQuery),
+    deleteVisit: (id) => ipcRenderer.invoke('delete-visit', id),
+    updateVisit: (data) => ipcRenderer.invoke('update-visit', data),
+    getEnquiries: (page = 1, limit = 10, searchQuery = '') => ipcRenderer.invoke('get-enquiries', page, limit, searchQuery),
+    addEnquiry: (data) => ipcRenderer.invoke('add-enquiry', data),
+    updateEnquiry: (data) => ipcRenderer.invoke('update-enquiry', data),
+    deleteEnquiry: (id) => ipcRenderer.invoke('delete-enquiry', id),
+    getCalls: () => ipcRenderer.invoke('get-calls'),
+    addCall: (data) => ipcRenderer.invoke('add-call', data),
+    getExpenses: () => ipcRenderer.invoke('get-expenses'),
+    addExpense: (data) => ipcRenderer.invoke('add-expense', data),
+    getSmartRecall: () => ipcRenderer.invoke('get-smart-recall'),
+    searchCustomers: (query) => ipcRenderer.invoke('search-customers', query),
+    searchCustomersLive: (query) => ipcRenderer.invoke('search-customers-live', query),
+    getCustomerDetails: (id) => ipcRenderer.invoke('get-customer-details', id),
+    mergeCustomers: (primaryId, targetId) => ipcRenderer.invoke('merge-customers', primaryId, targetId),
+});
