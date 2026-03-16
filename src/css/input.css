@@ -49,3 +49,125 @@
 .cp{
   cursor: pointer !important;
 }
+
+/* ===== Dashboard Stats Cards ===== */
+.dash-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  color: #fff;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+.dash-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+}
+.dash-card-teal {
+  background: linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #5eead4 100%);
+}
+.dash-card-emerald {
+  background: linear-gradient(135deg, #059669 0%, #10b981 50%, #6ee7b7 100%);
+}
+.dash-card-violet {
+  background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 50%, #c4b5fd 100%);
+}
+.dash-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+.dash-card-body {
+  margin-left: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+.dash-card-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.dash-card-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-top: 0.15rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.dash-card-decoration {
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  font-size: 5rem;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+/* ===== Dashboard Chart Cards ===== */
+.dash-chart-card {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  transition: box-shadow 0.3s ease;
+}
+.dash-chart-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Dashboard Top Customers Table ===== */
+.dash-table-scroll {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+}
+.dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.dash-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.dash-table thead tr {
+  background: linear-gradient(135deg, #0d9488, #14b8a6);
+  color: #fff;
+}
+.dash-table th {
+  padding: 0.65rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.dash-table td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+.dash-table tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+.dash-table tbody tr:hover {
+  background: #f0fdfa;
+}
+.dash-table .rank-medal {
+  font-size: 1.1rem;
+}

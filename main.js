@@ -27,6 +27,10 @@ function createWindow() {
 
 app.whenReady().then(() => {
   db = setupDatabase();
+
+  // Run migrations (add new columns if missing)
+  try { db.exec(`ALTER TABLE CallRecords ADD COLUMN status TEXT DEFAULT 'Pending'`); } catch (e) { }
+
   createWindow();
 
   app.on('activate', function () {
@@ -167,6 +171,16 @@ ipcMain.handle('search-customers-live', (event, query) => {
     WHERE (name LIKE ? OR phone LIKE ?) AND phone NOT LIKE 'GUEST-%'
     LIMIT 10
   `).all(likeQuery, likeQuery);
+});
+
+ipcMain.handle('export-all-customers', () => {
+  return db.prepare(`
+    SELECT name, phone
+    FROM Customers
+    WHERE phone NOT LIKE 'GUEST-%'
+    GROUP BY phone
+    ORDER BY name ASC
+  `).all();
 });
 
 ipcMain.handle('get-visits', (event, page = 1, limit = 10, searchQuery = '') => {
@@ -414,33 +428,88 @@ ipcMain.handle('delete-enquiry', (event, id) => {
   }
 });
 
-ipcMain.handle('get-calls', () => {
-  return db.prepare(`
-    SELECT id, customer_name, phone, call_date, counselor_name, purpose, next_follow_up 
-    FROM CallRecords 
-    ORDER BY call_date DESC, id DESC
-  `).all();
+ipcMain.handle('get-calls', (event, page = 1, limit = 10, searchQuery = '', statusFilter = '') => {
+  const offset = (page - 1) * limit;
+  const conditions = [];
+  const params = [];
+
+  if (searchQuery) {
+    conditions.push('(customer_name LIKE ? OR phone LIKE ?)');
+    params.push(`%${searchQuery}%`, `%${searchQuery}%`);
+  }
+  if (statusFilter) {
+    conditions.push('status = ?');
+    params.push(statusFilter);
+  }
+
+  const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
+  const countRes = db.prepare(`SELECT COUNT(*) as total FROM CallRecords${where}`).get(...params);
+  const totalCount = countRes.total;
+
+  const rows = db.prepare(
+    `SELECT id, customer_name, phone, call_date, counselor_name, purpose, status, notes, next_follow_up
+     FROM CallRecords${where} ORDER BY call_date DESC, id DESC LIMIT ? OFFSET ?`
+  ).all(...params, limit, offset);
+
+  return { rows, totalCount };
 });
 
 ipcMain.handle('add-call', (event, data) => {
-  const { name, phone, date, counselor, purpose, follow, notes } = data;
+  const { name, phone, date, counselor, purpose, status, follow, notes } = data;
   try {
     db.prepare(`
-      INSERT INTO CallRecords (customer_name, phone, call_date, counselor_name, purpose, notes, next_follow_up)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(name, phone, date, counselor, purpose, notes || null, follow || null);
+      INSERT INTO CallRecords (customer_name, phone, call_date, counselor_name, purpose, status, notes, next_follow_up)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(name, phone, date, counselor, purpose, status || 'Pending', notes || null, follow || null);
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message };
   }
 });
 
-ipcMain.handle('get-expenses', () => {
-  return db.prepare(`
-    SELECT id, expense_date, category, amount, remarks 
-    FROM Expenses 
-    ORDER BY expense_date DESC, id DESC
-  `).all();
+ipcMain.handle('update-call', (event, data) => {
+  const { id, name, phone, date, counselor, purpose, status, follow, notes } = data;
+  try {
+    db.prepare(`
+      UPDATE CallRecords
+      SET customer_name = ?, phone = ?, call_date = ?, counselor_name = ?, purpose = ?, status = ?, notes = ?, next_follow_up = ?
+      WHERE id = ?
+    `).run(name, phone, date, counselor, purpose, status || 'Pending', notes || null, follow || null, id);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('delete-call', (event, id) => {
+  try {
+    db.prepare('DELETE FROM CallRecords WHERE id = ?').run(id);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('get-expenses', (event, page = 1, limit = 10, searchQuery = '') => {
+  const offset = (page - 1) * limit;
+  const conditions = [];
+  const params = [];
+
+  if (searchQuery) {
+    conditions.push('(category LIKE ? OR remarks LIKE ?)');
+    params.push(`%${searchQuery}%`, `%${searchQuery}%`);
+  }
+
+  const where = conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
+  const countRes = db.prepare(`SELECT COUNT(*) as total FROM Expenses${where}`).get(...params);
+  const totalCount = countRes.total;
+
+  const rows = db.prepare(
+    `SELECT id, expense_date, category, amount, remarks
+     FROM Expenses${where} ORDER BY expense_date DESC, id DESC LIMIT ? OFFSET ?`
+  ).all(...params, limit, offset);
+
+  return { rows, totalCount };
 });
 
 ipcMain.handle('add-expense', (event, data) => {
@@ -456,13 +525,219 @@ ipcMain.handle('add-expense', (event, data) => {
   }
 });
 
-ipcMain.handle('get-smart-recall', () => {
+ipcMain.handle('update-expense', (event, data) => {
+  const { id, date, category, amount, remarks } = data;
+  try {
+    db.prepare(`
+      UPDATE Expenses SET expense_date = ?, category = ?, amount = ?, remarks = ?
+      WHERE id = ?
+    `).run(date, category, parseFloat(amount), remarks || null, id);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('delete-expense', (event, id) => {
+  try {
+    db.prepare('DELETE FROM Expenses WHERE id = ?').run(id);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('get-expense-summary', () => {
+  const thisMonth = new Date();
+  const monthStart = new Date(thisMonth.getFullYear(), thisMonth.getMonth(), 1).toISOString().split('T')[0];
+
+  const total = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM Expenses').get();
+  const monthly = db.prepare('SELECT COALESCE(SUM(amount), 0) as total FROM Expenses WHERE expense_date >= ?').get(monthStart);
+  const byCategory = db.prepare(`
+    SELECT category, SUM(amount) as total
+    FROM Expenses
+    WHERE expense_date >= ?
+    GROUP BY category
+    ORDER BY total DESC
+  `).all(monthStart);
+
+  return {
+    totalExpenses: total.total,
+    monthlyExpenses: monthly.total,
+    categoryBreakdown: byCategory
+  };
+});
+
+// ========= DASHBOARD CHART DATA =========
+
+ipcMain.handle('get-revenue-trend', () => {
+  // Get last 6 months of revenue data
+  const rows = db.prepare(`
+    SELECT 
+      strftime('%Y-%m', visit_date) AS month,
+      SUM(paid_amount) AS revenue,
+      COUNT(*) AS visit_count
+    FROM Visits
+    WHERE visit_date >= date('now', '-6 months')
+    GROUP BY month
+    ORDER BY month ASC
+  `).all();
+
+  // Fill in missing months with 0
+  const result = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = d.toISOString().slice(0, 7); // YYYY-MM
+    const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    const found = rows.find(r => r.month === key);
+    result.push({
+      label,
+      revenue: found ? found.revenue : 0,
+      visits: found ? found.visit_count : 0
+    });
+  }
+  return result;
+});
+
+ipcMain.handle('get-service-breakdown', () => {
   return db.prepare(`
-    SELECT c.id, c.name, c.phone, c.total_visits, MAX(v.visit_date) as last_visit
-    FROM Customers c
-    JOIN Visits v ON c.id = v.customer_id
-    GROUP BY c.id
-    HAVING last_visit <= date('now', '-30 days')
-    ORDER BY last_visit ASC
+    SELECT 
+      package_name AS service,
+      SUM(paid_amount) AS revenue,
+      COUNT(*) AS count
+    FROM Visits
+    GROUP BY package_name
+    ORDER BY revenue DESC
+    LIMIT 6
   `).all();
 });
+
+ipcMain.handle('get-payment-breakdown', () => {
+  return db.prepare(`
+    SELECT 
+      payment_method AS method,
+      COUNT(*) AS count,
+      SUM(paid_amount) AS revenue
+    FROM Visits
+    GROUP BY payment_method
+    ORDER BY revenue DESC
+  `).all();
+});
+
+ipcMain.handle('get-expense-revenue-comparison', () => {
+  const result = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = d.toISOString().slice(0, 7);
+    const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    const nextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1).toISOString().slice(0, 7);
+
+    const rev = db.prepare(`SELECT COALESCE(SUM(paid_amount), 0) as total FROM Visits WHERE strftime('%Y-%m', visit_date) = ?`).get(key);
+    const exp = db.prepare(`SELECT COALESCE(SUM(amount), 0) as total FROM Expenses WHERE strftime('%Y-%m', expense_date) = ?`).get(key);
+
+    result.push({
+      label,
+      revenue: rev.total,
+      expense: exp.total,
+      profit: rev.total - exp.total
+    });
+  }
+  return result;
+});
+
+ipcMain.handle('get-daily-visits', () => {
+  return db.prepare(`
+    SELECT 
+      visit_date AS date,
+      COUNT(*) AS visits,
+      SUM(paid_amount) AS revenue
+    FROM Visits
+    WHERE visit_date >= date('now', '-30 days')
+    GROUP BY visit_date
+    ORDER BY visit_date ASC
+  `).all();
+});
+
+// ========= SMART RECALL QUERIES =========
+
+// Inactive customers based on last visit (used for "Last Visits" 30/60/90+)
+ipcMain.handle('get-smart-recall', (event, days = 30) => {
+  const now = new Date();
+  now.setDate(now.getDate() - days);
+  const cutoff = now.toISOString().split('T')[0]; // YYYY-MM-DD
+
+  return db.prepare(`
+    SELECT 
+      c.id, 
+      c.name, 
+      c.phone, 
+      c.total_visits, 
+      c.total_spent, 
+      MAX(v.visit_date) AS last_visit
+    FROM Customers c
+    JOIN Visits v ON c.id = v.customer_id
+    WHERE c.phone NOT LIKE 'GUEST-%'
+    GROUP BY c.id
+    HAVING last_visit <= ?
+       AND c.phone NOT IN (SELECT phone FROM CallRecords WHERE call_date > ?)
+    ORDER BY last_visit ASC
+  `).all(cutoff, cutoff);
+});
+
+// Customers with follow-up calls pending / not responded to (follow-up date is today or past)
+ipcMain.handle('get-smart-recall-calls', (event, days = 30) => {
+  const today = new Date().toISOString().split('T')[0];
+
+  return db.prepare(`
+    SELECT 
+      customer_name,
+      phone,
+      MAX(call_date)       AS last_call,
+      MAX(next_follow_up)  AS last_follow_up,
+      COUNT(*)             AS total_calls
+    FROM CallRecords
+    WHERE phone NOT LIKE 'GUEST-%'
+      AND (status = 'Pending' OR status = 'No Response')
+    GROUP BY phone
+    HAVING (last_follow_up IS NULL OR last_follow_up <= ?)
+    ORDER BY COALESCE(last_follow_up, last_call) ASC
+  `).all(today);
+});
+
+// Call history for a specific customer (by phone)
+ipcMain.handle('get-customer-calls', (event, phone) => {
+  if (!phone) return [];
+  return db.prepare(`
+    SELECT id, call_date, counselor_name, purpose, status, notes, next_follow_up
+    FROM CallRecords
+    WHERE phone = ?
+    ORDER BY call_date DESC, id DESC
+  `).all(phone);
+});
+
+// Customers with enquiries that are still open / need follow-up since N days
+ipcMain.handle('get-smart-recall-enquiries', (event, days = 30) => {
+  const now = new Date();
+  now.setDate(now.getDate() - days);
+  const cutoff = now.toISOString().split('T')[0];
+
+  return db.prepare(`
+    SELECT 
+      customer_name,
+      phone,
+      MAX(enquiry_date)    AS last_enquiry,
+      MAX(follow_up_date)  AS last_follow_up,
+      COUNT(*)             AS total_enquiries
+    FROM Enquiries
+    WHERE phone NOT LIKE 'GUEST-%'
+      AND (status = 'New' OR status = 'Follow-up Pending')
+    GROUP BY phone
+    HAVING COALESCE(last_follow_up, last_enquiry) <= ?
+       AND phone NOT IN (SELECT phone FROM CallRecords WHERE call_date > ?)
+    ORDER BY last_enquiry ASC
+  `).all(cutoff, cutoff);
+});
+
+

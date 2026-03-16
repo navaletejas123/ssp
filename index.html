@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spa Center Management System</title>
+    <title>Massage/Spa Center Management System</title>
     <!-- Compiled Tailwind CSS will be linked here -->
     <link rel="stylesheet" href="./src/css/output.css">
     <!-- FontAwesome -->
@@ -56,7 +56,7 @@
                         class="nav-item flex items-center px-6 py-3 text-primary-100 hover:bg-primary-800 hover:text-white transition-colors"
                         data-target="enquiries">
                         <i class="fas fa-clipboard-list w-6 text-center"></i>
-                        <span class="ml-3">Enquiries</span>
+                        <span class="ml-3">Customer Enquiries</span>
                     </a>
                 </li>
                 <li>
@@ -64,7 +64,7 @@
                         class="nav-item flex items-center px-6 py-3 text-primary-100 hover:bg-primary-800 hover:text-white transition-colors"
                         data-target="calls">
                         <i class="fas fa-phone-alt w-6 text-center"></i>
-                        <span class="ml-3">Lead Follow-up</span>
+                        <span class="ml-3">New Calls</span>
                     </a>
                 </li>
                 <li>
@@ -88,6 +88,7 @@
                 </li>
             </ul>
         </nav>
+
     </aside>
 
     <!-- Main Content -->
@@ -110,74 +111,196 @@
 
             <!-- Views will be loaded here dynamically -->
             <div id="view-dashboard" class="page-view">
-                <!-- Dashboard Content Placeholder -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    <div class="card p-6 border-l-4 border-primary-500">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-primary-100 text-primary-600">
-                                <i class="fas fa-users text-2xl"></i>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">Total Customers</p>
-                                <p class="text-2xl font-semibold text-gray-900">--</p>
-                            </div>
+                <!-- Dashboard Filter -->
+                <div class="flex items-center justify-end mb-4">
+                    <label class="text-sm font-medium text-gray-600 mr-2">Period:</label>
+                    <select id="dash-filter" class="input-field !mt-0 !w-auto" onchange="initDashboard(this.value)">
+                        <option value="all">All Time</option>
+                        <option value="monthly">This Month</option>
+                        <option value="weekly">This Week</option>
+                        <option value="today">Today</option>
+                    </select>
+                </div>
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Total Customers Card -->
+                    <div class="dash-card dash-card-teal">
+                        <div class="dash-card-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="dash-card-body">
+                            <p class="dash-card-label">Total Customers</p>
+                            <p class="dash-card-value" id="dash-customers">--</p>
+                        </div>
+                        <div class="dash-card-decoration">
+                            <i class="fas fa-spa"></i>
                         </div>
                     </div>
-                    <div class="card p-6 border-l-4 border-green-500">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-green-100 text-green-600">
-                                <i class="fas fa-rupee-sign text-2xl"></i>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">Total Revenue</p>
-                                <p class="text-2xl font-semibold text-gray-900">--</p>
-                            </div>
+
+                    <!-- Total Revenue Card -->
+                    <div class="dash-card dash-card-emerald">
+                        <div class="dash-card-icon">
+                            <i class="fas fa-money-bill-trend-up"></i>
+                        </div>
+                        <div class="dash-card-body">
+                            <p class="dash-card-label">Total Revenue</p>
+                            <p class="dash-card-value" id="dash-revenue">--</p>
+                        </div>
+                        <div class="dash-card-decoration">
+                            <i class="fas fa-leaf"></i>
                         </div>
                     </div>
-                    <div class="card p-6 border-l-4 border-purple-500">
-                        <div class="flex items-center">
-                            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
-                                <i class="fas fa-chart-pie text-2xl"></i>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">Avg Spending</p>
-                                <p class="text-2xl font-semibold text-gray-900" id="dash-avg">--</p>
-                            </div>
+
+                    <!-- Avg Spending Card -->
+                    <div class="dash-card dash-card-violet">
+                        <div class="dash-card-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="dash-card-body">
+                            <p class="dash-card-label">Avg Spending</p>
+                            <p class="dash-card-value" id="dash-avg">--</p>
+                        </div>
+                        <div class="dash-card-decoration">
+                            <i class="fas fa-seedling"></i>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                    <div class="card p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Revenue Trend</h3>
-                        <div class="relative h-[250px] w-full">
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <!-- Revenue Trend Chart -->
+                    <div class="dash-chart-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                <span
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100 text-teal-600 mr-3">
+                                    <i class="fas fa-chart-bar text-sm"></i>
+                                </span>
+                                Revenue Trend
+                            </h3>
+                            <span class="text-xs text-gray-400 font-medium">Last 6 Months</span>
+                        </div>
+                        <div class="relative h-[270px] w-full">
                             <canvas id="revenueChart"></canvas>
                         </div>
                     </div>
-                    <div class="card p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Therapist Performance</h3>
-                        <div class="relative h-[250px] w-full">
-                            <canvas id="therapistChart"></canvas>
+
+                    <!-- Service Breakdown Pie Chart -->
+                    <div class="dash-chart-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                <span
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-violet-100 text-violet-600 mr-3">
+                                    <i class="fas fa-chart-pie text-sm"></i>
+                                </span>
+                                Service Breakdown
+                            </h3>
+                            <span class="text-xs text-gray-400 font-medium">By Revenue</span>
+                        </div>
+                        <div class="relative h-[270px] w-full">
+                            <canvas id="serviceChart"></canvas>
                         </div>
                     </div>
                 </div>
 
+                <!-- Extra Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <!-- Therapist Performance -->
+                    <div class="dash-chart-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                <span
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 mr-3">
+                                    <i class="fas fa-user-tie text-sm"></i>
+                                </span>
+                                Therapist Performance
+                            </h3>
+                            <span class="text-xs text-gray-400 font-medium">By Revenue</span>
+                        </div>
+                        <div class="relative h-[270px] w-full">
+                            <canvas id="therapistChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Payment Methods -->
+                    <div class="dash-chart-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                <span
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-sky-100 text-sky-600 mr-3">
+                                    <i class="fas fa-credit-card text-sm"></i>
+                                </span>
+                                Payment Methods
+                            </h3>
+                            <span class="text-xs text-gray-400 font-medium">Distribution</span>
+                        </div>
+                        <div class="relative h-[270px] w-full">
+                            <canvas id="paymentChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 3: Expense vs Revenue + Daily Visits -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <!-- Expense vs Revenue -->
+                    <div class="dash-chart-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                <span
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-rose-100 text-rose-600 mr-3">
+                                    <i class="fas fa-scale-balanced text-sm"></i>
+                                </span>
+                                Revenue vs Expenses
+                            </h3>
+                            <span class="text-xs text-gray-400 font-medium">Last 6 Months</span>
+                        </div>
+                        <div class="relative h-[270px] w-full">
+                            <canvas id="expenseRevenueChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Daily Visits Trend -->
+                    <div class="dash-chart-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                <span
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 mr-3">
+                                    <i class="fas fa-calendar-day text-sm"></i>
+                                </span>
+                                Daily Visits
+                            </h3>
+                            <span class="text-xs text-gray-400 font-medium">Last 30 Days</span>
+                        </div>
+                        <div class="relative h-[270px] w-full">
+                            <canvas id="dailyVisitsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Customers Table -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="card p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Top Customers</h3>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
+                    <div class="dash-chart-card">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                <span
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 text-amber-600 mr-3">
+                                    <i class="fas fa-crown text-sm"></i>
+                                </span>
+                                Top Customers
+                            </h3>
+                            <span class="text-xs text-gray-400 font-medium">By Total Spent</span>
+                        </div>
+                        <div class="dash-table-scroll">
+                            <table class="dash-table">
+                                <thead>
                                     <tr>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                            Customer</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                            Visits</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                            Spent</th>
+                                        <th>#</th>
+                                        <th>Customer</th>
+                                        <th>Visits</th>
+                                        <th>Total Spent</th>
                                     </tr>
                                 </thead>
-                                <tbody id="top-customers-list" class="bg-white divide-y divide-gray-200">
+                                <tbody id="top-customers-list">
                                     <!-- JS Populate -->
                                 </tbody>
                             </table>
@@ -308,6 +431,9 @@
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Status</th>
                                     <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Next Follow-up</th>
+                                    <th
                                         class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Actions</th>
                                 </tr>
@@ -354,87 +480,380 @@
                 </div>
             </div>
 
-            <!-- Calls View -->
+            <!-- new call only -->
             <div id="view-calls" class="page-view hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-medium text-gray-900">Lead Follow-ups / Calling</h3>
-                    <button class="btn-primary" onclick="openModal('call-modal')">
-                        <i class="fas fa-plus mr-2"></i> Record Call
-                    </button>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <h3 class="text-lg font-medium text-gray-900"></h3>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-64">
+                            <input type="text" id="lf-search" class="input-field pl-10"
+                                placeholder="Search name or phone..." oninput="searchLeadFollowup()">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                        <select id="lf-status-filter" class="input-field sm:w-40" onchange="searchLeadFollowup()">
+                            <option value="">All Status</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                            <option value="No Response">No Response</option>
+                        </select>
+                        <button class="btn-primary whitespace-nowrap" onclick="openNewCallModal()">
+                            <i class="fas fa-plus mr-2"></i> New Call
+                        </button>
+                    </div>
                 </div>
-                <div class="card p-0">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Call Date
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Purpose</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Next
-                                    Follow-up</th>
-                            </tr>
-                        </thead>
-                        <tbody id="calls-table-body" class="bg-white divide-y divide-gray-200">
-                            <!-- populate dynamically -->
-                        </tbody>
-                    </table>
+                <div class="card p-0 flex flex-col min-h-[500px]">
+                    <div class="flex-1 overflow-x-auto p-4">
+                        <table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-sm">
+                            <thead class="bg-gray-100 border-b border-gray-300">
+                                <tr>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Call Date</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Customer</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Phone</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Counselor</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Purpose</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Next Follow-up</th>
+                                    <th
+                                        class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calls-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- populate dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination Container -->
+                    <div
+                        class="border-t border-gray-200 bg-white px-4 py-3 sm:px-6 flex items-center justify-between mt-auto">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <button id="lf-prev-mobile"
+                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                onclick="changeCallPage(-1)">Previous</button>
+                            <button id="lf-next-mobile"
+                                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                onclick="changeCallPage(1)">Next</button>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-end">
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                                    aria-label="Pagination">
+                                    <button id="lf-prev-btn"
+                                        class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                                        onclick="changeCallPage(-1)">
+                                        <span class="sr-only">Previous</span>
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <div id="lf-page-numbers" class="flex">
+                                        <!-- Page Numbers populated via JS -->
+                                    </div>
+                                    <button id="lf-next-btn"
+                                        class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                                        onclick="changeCallPage(1)">
+                                        <span class="sr-only">Next</span>
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Expenses View -->
             <div id="view-expenses" class="page-view hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-medium text-gray-900">Expense Management</h3>
-                    <button class="btn-primary" onclick="openModal('expense-modal')">
-                        <i class="fas fa-plus mr-2"></i> Add Expense
-                    </button>
+                <!-- Expense Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="dash-card dash-card-teal" style="padding:1rem">
+                        <div class="dash-card-icon" style="width:40px;height:40px;font-size:1.1rem">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="dash-card-body">
+                            <p class="dash-card-label" style="font-size:0.7rem">Total Expenses</p>
+                            <p class="dash-card-value" id="exp-total" style="font-size:1.3rem">₹0</p>
+                        </div>
+                    </div>
+                    <div class="dash-card dash-card-emerald" style="padding:1rem">
+                        <div class="dash-card-icon" style="width:40px;height:40px;font-size:1.1rem">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="dash-card-body">
+                            <p class="dash-card-label" style="font-size:0.7rem">This Month</p>
+                            <p class="dash-card-value" id="exp-monthly" style="font-size:1.3rem">₹0</p>
+                        </div>
+                    </div>
+                    <div class="dash-card dash-card-violet" style="padding:1rem">
+                        <div class="dash-card-icon" style="width:40px;height:40px;font-size:1.1rem">
+                            <i class="fas fa-tags"></i>
+                        </div>
+                        <div class="dash-card-body">
+                            <p class="dash-card-label" style="font-size:0.7rem">Top Category</p>
+                            <p class="dash-card-value" id="exp-top-cat" style="font-size:1.3rem">--</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="card p-0">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody id="expenses-table-body" class="bg-white divide-y divide-gray-200">
-                            <!-- populate dynamically -->
-                        </tbody>
-                    </table>
+
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                    <h3 class="text-lg font-medium text-gray-900">Expense Management</h3>
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <div class="relative flex-1 sm:w-64">
+                            <input type="text" id="exp-search" class="input-field pl-10"
+                                placeholder="Search category or remarks..." oninput="searchExpenses()">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                        <button class="btn-primary whitespace-nowrap" onclick="openExpenseModal()">
+                            <i class="fas fa-plus mr-2"></i> Add Expense
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card p-0 flex flex-col min-h-[500px]">
+                    <div class="flex-1 overflow-x-auto p-4">
+                        <table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-sm">
+                            <thead class="bg-gray-100 border-b border-gray-300">
+                                <tr>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Sr. No.</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Date</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Category</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Amount</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Remarks</th>
+                                    <th
+                                        class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenses-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- populate dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination -->
+                    <div
+                        class="border-t border-gray-200 bg-white px-4 py-3 sm:px-6 flex items-center justify-between mt-auto">
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            <button id="exp-prev-mobile"
+                                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                onclick="changeExpensePage(-1)">Previous</button>
+                            <button id="exp-next-mobile"
+                                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                                onclick="changeExpensePage(1)">Next</button>
+                        </div>
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-end">
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                                    aria-label="Pagination">
+                                    <button id="exp-prev-btn"
+                                        class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                                        onclick="changeExpensePage(-1)">
+                                        <span class="sr-only">Previous</span>
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <div id="exp-page-numbers" class="flex">
+                                        <!-- Page Numbers populated via JS -->
+                                    </div>
+                                    <button id="exp-next-btn"
+                                        class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                                        onclick="changeExpensePage(1)">
+                                        <span class="sr-only">Next</span>
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Smart Recall View -->
             <div id="view-smart-recall" class="page-view hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-medium text-gray-900">Smart Recall (Inactive Customers)</h3>
-                    <div class="text-sm text-gray-500">
-                        Customers who haven't visited in 30+ days
+                <div class="flex flex-col gap-4 mb-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900">Smart Recall</h3>
+                            <p class="text-sm text-gray-500 mt-1">
+                                Quickly recall inactive customers from visits, follow-up calls, and enquiries.
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-3 w-full sm:w-auto">
+                            <div class="relative flex-1 sm:w-64">
+                                <input type="text" id="sr-search" class="input-field pl-10"
+                                    placeholder="Search name or phone..." oninput="filterSmartRecallCurrentTab()">
+                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                            <select id="sr-days-filter" class="input-field sm:w-40"
+                                onchange="reloadAllSmartRecallSources()">
+                                <option value="30">30+ Days</option>
+                                <option value="60">60+ Days</option>
+                                <option value="90">90+ Days</option>
+                            </select>
+                            <button class="btn-primary whitespace-nowrap" onclick="reloadAllSmartRecallSources()">
+                                <i class="fas fa-sync-alt mr-2"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Smart Recall Tabs -->
+                    <div class="flex border-b border-gray-200 text-sm">
+                        <button id="sr-tab-visits"
+                            class="px-4 py-2 -mb-px border-b-2 border-primary-500 text-primary-600 font-medium"
+                            onclick="setSmartRecallTab('visits')">
+                            Last Visits
+                        </button>
+                        <button id="sr-tab-calls"
+                            class="px-4 py-2 -mb-px border-b-2 border-transparent text-gray-500 hover:text-primary-600 hover:border-primary-200"
+                            onclick="setSmartRecallTab('calls')">
+                            Follow-up Calls
+                        </button>
+                        <button id="sr-tab-enquiries"
+                            class="px-4 py-2 -mb-px border-b-2 border-transparent text-gray-500 hover:text-primary-600 hover:border-primary-200"
+                            onclick="setSmartRecallTab('enquiries')">
+                            Enquiries
+                        </button>
                     </div>
                 </div>
-                <div class="card p-0">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer
-                                    Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Visit
-                                    Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Visits
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recall-table-body" class="bg-white divide-y divide-gray-200">
-                            <!-- populate dynamically -->
-                        </tbody>
-                    </table>
+
+                <!-- Visits Recall Tab -->
+                <div id="sr-panel-visits" class="card p-0 flex flex-col min-h-[420px]">
+                    <div class="flex-1 overflow-x-auto p-4">
+                        <table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-sm">
+                            <thead class="bg-gray-100 border-b border-gray-300">
+                                <tr>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Customer Name</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Phone</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Last Visit</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Days Inactive</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Total Visits</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Total Spent</th>
+                                    <th
+                                        class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recall-visits-body" class="bg-white divide-y divide-gray-200">
+                                <!-- populate dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div
+                        class="border-t border-gray-200 bg-white px-4 py-3 sm:px-6 flex items-center justify-end mt-auto">
+                        <span id="sr-visits-count" class="text-sm text-gray-500 mr-auto"></span>
+                    </div>
+                </div>
+
+                <!-- Calls Recall Tab -->
+                <div id="sr-panel-calls" class="card p-0 flex flex-col min-h-[420px] hidden">
+                    <div class="flex-1 overflow-x-auto p-4">
+                        <table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-sm">
+                            <thead class="bg-gray-100 border-b border-gray-300">
+                                <tr>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Customer Name</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Phone</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Last Call</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Next Follow-up</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Pending Since</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Total Calls</th>
+                                    <th
+                                        class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recall-calls-body" class="bg-white divide-y divide-gray-200">
+                                <!-- populate dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div
+                        class="border-t border-gray-200 bg-white px-4 py-3 sm:px-6 flex items-center justify-end mt-auto">
+                        <span id="sr-calls-count" class="text-sm text-gray-500 mr-auto"></span>
+                    </div>
+                </div>
+
+                <!-- Enquiries Recall Tab -->
+                <div id="sr-panel-enquiries" class="card p-0 flex flex-col min-h-[420px] hidden">
+                    <div class="flex-1 overflow-x-auto p-4">
+                        <table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-sm">
+                            <thead class="bg-gray-100 border-b border-gray-300">
+                                <tr>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Customer Name</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Phone</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Last Enquiry</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Next Follow-up</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Pending Since</th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Total Enquiries</th>
+                                    <th
+                                        class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recall-enquiries-body" class="bg-white divide-y divide-gray-200">
+                                <!-- populate dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div
+                        class="border-t border-gray-200 bg-white px-4 py-3 sm:px-6 flex items-center justify-end mt-auto">
+                        <span id="sr-enquiries-count" class="text-sm text-gray-500 mr-auto"></span>
+                    </div>
                 </div>
             </div>
 
@@ -445,7 +864,7 @@
                 </div>
 
                 <div class="card mb-6">
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 items-center">
                         <div class="flex-1">
                             <input type="text" id="ch-search" class="input-field"
                                 placeholder="Search by name or phone number..."
@@ -453,6 +872,9 @@
                         </div>
                         <button class="btn-primary" onclick="searchCustomers()">
                             Search
+                        </button>
+                        <button class="btn-secondary cursor-pointer" onclick="exportCustomersCSV()">
+                            <i class="fas fa-file-export mr-2"></i> Export All
                         </button>
                     </div>
                 </div>
@@ -527,6 +949,42 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Call History Section -->
+                        <div id="ch-calls-section" class="hidden mt-5">
+                            <h4 class="text-md font-medium text-gray-900 mb-3">
+                                <i class="fas fa-phone-alt text-primary-500 mr-2"></i>Call History
+                            </h4>
+                            <div class="card p-0 max-h-[30vh] overflow-y-auto overflow-x-auto border">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50 sticky top-0">
+                                        <tr>
+                                            <th
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Call Date</th>
+                                            <th
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Counselor</th>
+                                            <th
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Purpose</th>
+                                            <th
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Status</th>
+                                            <th
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Next Follow-up</th>
+                                            <th
+                                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ch-calls-body" class="bg-white divide-y divide-gray-200">
+                                        <!-- Dynamic -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -555,15 +1013,16 @@
                             <datalist id="customer-phones-list"></datalist>
                             <datalist id="customer-names-list"></datalist>
 
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Phone Number</label>
-                                <input type="text" id="v-phone" list="customer-phones-list" autocomplete="off"
-                                    class="input-field" placeholder="Search or Enter new">
-                            </div>
+
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Customer Name</label>
                                 <input type="text" id="v-name" list="customer-names-list" autocomplete="off"
                                     class="input-field">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                                <input type="text" id="v-phone" list="customer-phones-list" autocomplete="off"
+                                    class="input-field" placeholder="Search or Enter new">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Visit Date</label>
@@ -909,8 +1368,8 @@
     <div id="call-modal" class="popup-overlay hidden">
         <div class="popup-content">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                <h3 class="text-lg font-medium text-gray-900">Record Call</h3>
-                <button class="text-gray-400 hover:text-gray-500 focus:outline-none" onclick="closeModal('call-modal')">
+                <h3 class="text-lg font-medium text-gray-900" id="call-modal-title">Record Call</h3>
+                <button class="text-gray-400 hover:text-gray-500 focus:outline-none" onclick="closeCallModal()">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -940,7 +1399,16 @@
                                 <option value="Feedback Collection">Feedback Collection</option>
                                 <option value="Promotional Offer">Promotional Offer</option>
                                 <option value="Appointment Reminder">Appointment Reminder</option>
+                                <option value="Recall - Inactive Customer">Recall - Inactive Customer</option>
                                 <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Call Status</label>
+                            <select id="c-status" class="input-field">
+                                <option value="Pending">Pending</option>
+                                <option value="Completed">Completed</option>
+                                <option value="No Response">No Response</option>
                             </select>
                         </div>
                         <div>
@@ -955,18 +1423,73 @@
                 </form>
             </div>
             <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
-                <button type="button" class="btn-secondary" onclick="closeModal('call-modal')">Cancel</button>
+                <button type="button" class="btn-secondary" onclick="closeCallModal()">Cancel</button>
                 <button type="button" class="btn-primary" onclick="saveCall()">Save Record</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call View Modal (Read Only) -->
+    <div id="call-view-modal" class="popup-overlay hidden">
+        <div class="popup-content">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-medium text-gray-900">Call Details</h3>
+                <button class="text-gray-400 hover:text-gray-500 focus:outline-none"
+                    onclick="closeModal('call-view-modal')">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="px-6 py-4 overflow-y-auto max-h-[70vh]">
+                <form class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Customer Name</label>
+                            <input type="text" id="cv-name" class="input-field bg-gray-100 font-medium" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                            <input type="text" id="cv-phone" class="input-field bg-gray-100 font-medium" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Call Date</label>
+                            <input type="date" id="cv-date" class="input-field bg-gray-100 font-medium" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Counselor</label>
+                            <input type="text" id="cv-counselor" class="input-field bg-gray-100 font-medium" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Purpose</label>
+                            <input type="text" id="cv-purpose" class="input-field bg-gray-100 font-medium" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Status</label>
+                            <input type="text" id="cv-status" class="input-field bg-gray-100 font-medium" disabled>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Next Follow-up Date</label>
+                            <input type="date" id="cv-follow" class="input-field bg-gray-100 font-medium" disabled>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Call Notes</label>
+                        <textarea id="cv-notes" rows="3" class="input-field bg-gray-100 font-medium"
+                            disabled></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+                <button type="button" class="btn-primary" onclick="closeModal('call-view-modal')">Close</button>
             </div>
         </div>
     </div>
     </div>
 
-    <!-- Expense Modal -->
+    <!-- Expense Modal (Add/Edit) -->
     <div id="expense-modal" class="popup-overlay hidden">
         <div class="popup-content">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                <h3 class="text-lg font-medium text-gray-900">Add Expense</h3>
+                <h3 id="expense-modal-title" class="text-lg font-medium text-gray-900">Add Expense</h3>
                 <button class="text-gray-400 hover:text-gray-500 focus:outline-none"
                     onclick="closeModal('expense-modal')">
                     <i class="fas fa-times text-xl"></i>
@@ -974,6 +1497,7 @@
             </div>
             <div class="px-6 py-4 overflow-y-auto max-h-[70vh]">
                 <form id="expense-form" class="space-y-4">
+                    <input type="hidden" id="ex-id">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Date</label>
@@ -987,6 +1511,8 @@
                                 <option value="Rent">Rent</option>
                                 <option value="Utilities">Utilities</option>
                                 <option value="Marketing">Marketing</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Equipment">Equipment</option>
                                 <option value="Other">Other</option>
                             </select>
                         </div>
@@ -1003,7 +1529,45 @@
             </div>
             <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
                 <button type="button" class="btn-secondary" onclick="closeModal('expense-modal')">Cancel</button>
-                <button type="button" class="btn-primary" onclick="saveExpense()">Save Expense</button>
+                <button type="button" class="btn-primary" id="expense-save-btn" onclick="saveExpense()">Save
+                    Expense</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense View Modal (Read Only) -->
+    <div id="expense-view-modal" class="popup-overlay hidden">
+        <div class="popup-content">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-medium text-gray-900">Expense Details</h3>
+                <button class="text-gray-400 hover:text-gray-500 focus:outline-none"
+                    onclick="closeModal('expense-view-modal')">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="px-6 py-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Date</label>
+                        <input type="text" id="exv-date" class="input-field bg-gray-100 font-medium" disabled>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Category</label>
+                        <input type="text" id="exv-category" class="input-field bg-gray-100 font-medium" disabled>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Amount</label>
+                        <input type="text" id="exv-amount" class="input-field bg-gray-100 font-bold text-red-600"
+                            disabled>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700">Remarks</label>
+                    <textarea id="exv-remarks" rows="2" class="input-field bg-gray-100 font-medium" disabled></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+                <button type="button" class="btn-primary" onclick="closeModal('expense-view-modal')">Close</button>
             </div>
         </div>
     </div>

@@ -39,12 +39,16 @@ document.addEventListener('DOMContentLoaded', () => {
             pageViews.forEach(view => {
                 if (view.id === 'view-' + target) {
                     view.classList.remove('hidden');
-                    if (target === 'dashboard') initDashboard('monthly');
+                    if (target === 'dashboard') initDashboard(document.getElementById('dash-filter')?.value || 'all');
                     if (target === 'visit-entry') loadRecentVisits();
                     if (target === 'enquiries') loadEnquiries();
                     if (target === 'calls') loadCalls();
                     if (target === 'expenses') loadExpenses();
-                    if (target === 'smart-recall') loadSmartRecall();
+                    if (target === 'smart-recall') {
+                        // Load all smart recall sources when entering the view
+                        reloadAllSmartRecallSources();
+                        setSmartRecallTab('visits');
+                    }
                     if (target === 'customer-history') {
                         document.getElementById('ch-search').value = '';
                         document.getElementById('ch-results-list').innerHTML = '<p class="text-sm text-gray-500 italic">Enter a search query...</p>';
@@ -65,36 +69,228 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initialize Dashboard data
-    initDashboard('monthly');
+    initDashboard('all');
 });
 
 let therapistChartInstance = null;
+let revenueChartInstance = null;
+let serviceChartInstance = null;
+let paymentChartInstance = null;
+let expenseRevenueChartInstance = null;
+let dailyVisitsChartInstance = null;
 
 async function initDashboard(filter) {
     try {
         if (!window.api) return; // For browser testing fallback
+
+        // 1. Stats Cards
         const stats = await window.api.getDashboardStats(filter);
-        document.querySelector('.border-primary-500 .text-2xl').textContent = stats.totalCustomers;
-        document.querySelector('.border-green-500 .text-2xl').textContent = `₹${stats.revenue.toLocaleString()}`;
-        document.getElementById('dash-avg').textContent = `₹${stats.avgSpending}`;
+        document.getElementById('dash-customers').textContent = stats.totalCustomers.toLocaleString();
+        document.getElementById('dash-revenue').textContent = `₹${stats.revenue.toLocaleString()}`;
+        document.getElementById('dash-avg').textContent = `₹${Number(stats.avgSpending).toLocaleString()}`;
 
-        const tStats = await window.api.getTherapistStats(filter);
-        renderTherapistChart(tStats);
+        // 2. Revenue Trend Chart (bar + line combo)
+        const trendData = await window.api.getRevenueTrend();
+        renderRevenueChart(trendData);
 
+        // 3. Service Breakdown Doughnut
+        const serviceData = await window.api.getServiceBreakdown();
+        renderServiceChart(serviceData);
+
+        // 4. Top Customers
         const topCustomers = await window.api.getTopCustomers();
         renderTopCustomers(topCustomers);
+
+        // 5. Therapist Performance Chart
+        const therapistData = await window.api.getTherapistStats(filter);
+        renderTherapistChart(therapistData);
+
+        // 6. Payment Methods Doughnut
+        const paymentData = await window.api.getPaymentBreakdown();
+        renderPaymentChart(paymentData);
+
+        // 7. Expense vs Revenue Comparison
+        const expRevData = await window.api.getExpenseRevenueComparison();
+        renderExpenseRevenueChart(expRevData);
+
+        // 8. Daily Visits Trend
+        const dailyData = await window.api.getDailyVisits();
+        renderDailyVisitsChart(dailyData);
     } catch (e) {
         console.error("Dashboard Load Error:", e);
     }
 }
 
+function renderRevenueChart(data) {
+    const ctx = document.getElementById('revenueChart');
+    if (!ctx) return;
+    if (revenueChartInstance) revenueChartInstance.destroy();
+
+    const labels = data.map(d => d.label);
+    const revenues = data.map(d => d.revenue);
+    const visits = data.map(d => d.visits);
+
+    revenueChartInstance = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Revenue (₹)',
+                    data: revenues,
+                    backgroundColor: (context) => {
+                        const chart = context.chart;
+                        const { ctx: c, chartArea } = chart;
+                        if (!chartArea) return '#14b8a6';
+                        const gradient = c.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                        gradient.addColorStop(0, 'rgba(20, 184, 166, 0.4)');
+                        gradient.addColorStop(1, 'rgba(13, 148, 136, 0.9)');
+                        return gradient;
+                    },
+                    borderColor: '#0d9488',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    barPercentage: 0.6,
+                    order: 2
+                },
+                {
+                    label: 'Visits',
+                    data: visits,
+                    type: 'line',
+                    borderColor: '#7c3aed',
+                    backgroundColor: 'rgba(124, 58, 237, 0.1)',
+                    borderWidth: 2.5,
+                    pointBackgroundColor: '#7c3aed',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    tension: 0.4,
+                    fill: true,
+                    yAxisID: 'y1',
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { usePointStyle: true, padding: 16, font: { size: 12 } }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleFont: { size: 13 },
+                    bodyFont: { size: 12 },
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            if (context.dataset.label === 'Revenue (₹)') {
+                                return ` Revenue: ₹${context.parsed.y.toLocaleString()}`;
+                            }
+                            return ` Visits: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 11, weight: '500' }, color: '#6b7280' }
+                },
+                y: {
+                    position: 'left',
+                    grid: { color: 'rgba(0,0,0,0.04)' },
+                    ticks: {
+                        font: { size: 11 },
+                        color: '#6b7280',
+                        callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v)
+                    }
+                },
+                y1: {
+                    position: 'right',
+                    grid: { drawOnChartArea: false },
+                    ticks: { font: { size: 11 }, color: '#7c3aed' },
+                    title: { display: true, text: 'Visits', color: '#7c3aed', font: { size: 11 } }
+                }
+            }
+        }
+    });
+}
+
+function renderServiceChart(data) {
+    const ctx = document.getElementById('serviceChart');
+    if (!ctx) return;
+    if (serviceChartInstance) serviceChartInstance.destroy();
+
+    const spaColors = [
+        '#0d9488', '#059669', '#7c3aed',
+        '#f59e0b', '#ef4444', '#3b82f6'
+    ];
+
+    serviceChartInstance = new Chart(ctx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: data.map(d => d.service),
+            datasets: [{
+                data: data.map(d => d.revenue),
+                backgroundColor: spaColors,
+                borderColor: '#fff',
+                borderWidth: 3,
+                hoverOffset: 14
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '55%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 14,
+                        font: { size: 11 },
+                        generateLabels: (chart) => {
+                            const ds = chart.data.datasets[0];
+                            const total = ds.data.reduce((a, b) => a + b, 0);
+                            return chart.data.labels.map((label, i) => ({
+                                text: `${label.length > 20 ? label.substring(0, 20) + '…' : label}`,
+                                fillStyle: ds.backgroundColor[i],
+                                strokeStyle: '#fff',
+                                lineWidth: 0,
+                                pointStyle: 'circle',
+                                hidden: false,
+                                index: i
+                            }));
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = ((context.parsed / total) * 100).toFixed(1);
+                            return ` ₹${context.parsed.toLocaleString()} (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
 function renderTherapistChart(data) {
     const ctx = document.getElementById('therapistChart');
     if (!ctx) return;
+    if (therapistChartInstance) therapistChartInstance.destroy();
 
-    if (therapistChartInstance) {
-        therapistChartInstance.destroy();
-    }
+    const colors = ['#0d9488','#059669','#7c3aed','#f59e0b','#ef4444','#3b82f6','#ec4899','#8b5cf6'];
 
     therapistChartInstance = new Chart(ctx.getContext('2d'), {
         type: 'bar',
@@ -103,12 +299,219 @@ function renderTherapistChart(data) {
             datasets: [{
                 label: 'Revenue (₹)',
                 data: data.map(d => d.revenue || 0),
-                backgroundColor: '#3b82f6',
+                backgroundColor: data.map((_, i) => colors[i % colors.length] + 'cc'),
+                borderColor: data.map((_, i) => colors[i % colors.length]),
+                borderWidth: 1,
+                borderRadius: 6,
+                barPercentage: 0.6
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15,23,42,0.9)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            return ` ₹${context.parsed.x.toLocaleString()} (${data[context.dataIndex].customers_handled} clients)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(0,0,0,0.04)' },
+                    ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v), font: { size: 11 }, color: '#6b7280' }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { font: { size: 11, weight: '500' }, color: '#374151' }
+                }
+            }
+        }
+    });
+}
+
+function renderPaymentChart(data) {
+    const ctx = document.getElementById('paymentChart');
+    if (!ctx) return;
+    if (paymentChartInstance) paymentChartInstance.destroy();
+
+    const colors = ['#0ea5e9','#8b5cf6','#f59e0b','#ef4444','#10b981','#ec4899'];
+
+    paymentChartInstance = new Chart(ctx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: data.map(d => d.method),
+            datasets: [{
+                data: data.map(d => d.revenue),
+                backgroundColor: colors.slice(0, data.length),
+                borderColor: '#fff',
+                borderWidth: 3,
+                hoverOffset: 14
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false
+            maintainAspectRatio: false,
+            cutout: '55%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { usePointStyle: true, padding: 14, font: { size: 11 } }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15,23,42,0.9)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a,b) => a+b, 0);
+                            const pct = ((context.parsed / total) * 100).toFixed(1);
+                            return ` ₹${context.parsed.toLocaleString()} (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderExpenseRevenueChart(data) {
+    const ctx = document.getElementById('expenseRevenueChart');
+    if (!ctx) return;
+    if (expenseRevenueChartInstance) expenseRevenueChartInstance.destroy();
+
+    expenseRevenueChartInstance = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.label),
+            datasets: [
+                {
+                    label: 'Revenue',
+                    data: data.map(d => d.revenue),
+                    backgroundColor: 'rgba(16,185,129,0.75)',
+                    borderColor: '#059669',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barPercentage: 0.4
+                },
+                {
+                    label: 'Expenses',
+                    data: data.map(d => d.expense),
+                    backgroundColor: 'rgba(239,68,68,0.65)',
+                    borderColor: '#dc2626',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barPercentage: 0.4
+                },
+                {
+                    label: 'Profit',
+                    data: data.map(d => d.profit),
+                    type: 'line',
+                    borderColor: '#7c3aed',
+                    backgroundColor: 'rgba(124,58,237,0.1)',
+                    borderWidth: 2.5,
+                    pointBackgroundColor: '#7c3aed',
+                    pointRadius: 4,
+                    tension: 0.4,
+                    fill: false,
+                    order: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top', labels: { usePointStyle: true, padding: 14, font: { size: 11 } } },
+                tooltip: {
+                    backgroundColor: 'rgba(15,23,42,0.9)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) { return ` ${context.dataset.label}: ₹${context.parsed.y.toLocaleString()}`; }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#6b7280' } },
+                y: {
+                    grid: { color: 'rgba(0,0,0,0.04)' },
+                    ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v), font: { size: 11 }, color: '#6b7280' }
+                }
+            }
+        }
+    });
+}
+
+function renderDailyVisitsChart(data) {
+    const ctx = document.getElementById('dailyVisitsChart');
+    if (!ctx) return;
+    if (dailyVisitsChartInstance) dailyVisitsChartInstance.destroy();
+
+    const labels = data.map(d => {
+        const dt = new Date(d.date);
+        return dt.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+    });
+
+    dailyVisitsChartInstance = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Visits',
+                data: data.map(d => d.visits),
+                borderColor: '#6366f1',
+                backgroundColor: (context) => {
+                    const chart = context.chart;
+                    const { ctx: c, chartArea } = chart;
+                    if (!chartArea) return 'rgba(99,102,241,0.1)';
+                    const gradient = c.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                    gradient.addColorStop(0, 'rgba(99,102,241,0.02)');
+                    gradient.addColorStop(1, 'rgba(99,102,241,0.25)');
+                    return gradient;
+                },
+                borderWidth: 2.5,
+                pointBackgroundColor: '#6366f1',
+                pointRadius: 3,
+                pointHoverRadius: 6,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15,23,42,0.9)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        title: items => items[0].label,
+                        label: function(context) { return ` ${context.parsed.y} visits`; }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 10 }, color: '#9ca3af', maxRotation: 45, autoSkip: true, maxTicksLimit: 10 }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0,0,0,0.04)' },
+                    ticks: { font: { size: 11 }, color: '#6b7280', stepSize: 1 }
+                }
+            }
         }
     });
 }
@@ -125,15 +528,23 @@ function renderTopCustomers(data) {
     const tbody = document.getElementById('top-customers-list');
     if (!tbody) return;
     tbody.innerHTML = '';
-    data.forEach(c => {
+
+    const medals = ['🥇', '🥈', '🥉'];
+
+    data.forEach((c, idx) => {
         const tr = document.createElement('tr');
+        const rankDisplay = idx < 3
+            ? `<span class="rank-medal">${medals[idx]}</span>`
+            : `<span class="text-gray-500 font-medium">${idx + 1}</span>`;
+
         tr.innerHTML = `
-            <td class="px-4 py-3 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">${c.name} ${c.vip_status ? '<i class="fas fa-star text-yellow-400 text-xs"></i>' : ''}</div>
-                <div class="text-xs text-gray-500">${c.phone}</div>
+            <td>${rankDisplay}</td>
+            <td>
+                <div class="font-semibold text-gray-900">${c.name} ${c.vip_status ? '<i class="fas fa-star text-yellow-400 text-xs ml-1"></i>' : ''}</div>
+                <div class="text-xs text-gray-400">${c.phone}</div>
             </td>
-            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.visits}</td>
-            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-semibold">₹${c.total_spent.toLocaleString()}</td>
+            <td class="text-gray-600">${c.visits}</td>
+            <td class="font-bold text-emerald-600">₹${c.total_spent.toLocaleString()}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -794,6 +1205,8 @@ async function loadEnquiries(searchQuery = currentEnquirySearchQuery) {
         const displayName = isGuest && e.customer_name === 'Walk-in' ? 'Walk-in' : e.customer_name;
 
         const formattedDate = formatDate(e.enquiry_date);
+        const followUpDate = e.follow_up_date ? formatDate(e.follow_up_date) : '-';
+        const followUpClass = e.follow_up_date && new Date(e.follow_up_date) < new Date() && e.status !== 'Converted' && e.status !== 'Closed' ? 'text-red-600 font-semibold' : 'text-gray-500';
 
         tbody.innerHTML += `
             <tr>
@@ -804,6 +1217,7 @@ async function loadEnquiries(searchQuery = currentEnquirySearchQuery) {
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badgeColor}">${e.status}</span>
                 </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm ${followUpClass}">${followUpDate}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                     <button class="text-blue-600 hover:text-blue-900 mr-2" data-action="view" data-id="${e.id}" title="View"><i class="fas fa-eye"></i></button>
                     <button class="text-primary-600 hover:text-primary-900 mr-2" data-action="edit" data-id="${e.id}" title="Edit"><i class="fas fa-edit"></i></button>
@@ -862,7 +1276,7 @@ function viewEnquiry(id) {
     document.getElementById('ev-follow').value = e.follow_up_date || '';
     document.getElementById('ev-counselor').value = e.counselor_name;
     document.getElementById('ev-source').value = e.source;
-    document.getElementById('ev-status').value = e.status;
+    document.getElementById('ev-status').value = e.status; 
     document.getElementById('ev-service').value = e.service_interested || '';
     document.getElementById('ev-desc').value = e.description || '';
 
@@ -906,23 +1320,196 @@ async function deleteEnquiry(id) {
     }
 }
 
+// ========== LEAD FOLLOW-UP (CALLS) ==========
+let callCache = new Map();
+let currentCallPage = 1;
+const callItemsPerPage = 10;
+let totalCallPages = 1;
+let currentCallSearchQuery = '';
+let currentCallStatusFilter = '';
+let currentEditCallId = null;
+
+function renderCallPagination() {
+    const pageNumbersContainer = document.getElementById('lf-page-numbers');
+    if (!pageNumbersContainer) return;
+    pageNumbersContainer.innerHTML = '';
+
+    const prevBtn = document.getElementById('lf-prev-btn');
+    const nextBtn = document.getElementById('lf-next-btn');
+    const prevMobile = document.getElementById('lf-prev-mobile');
+    const nextMobile = document.getElementById('lf-next-mobile');
+    if (prevBtn) prevBtn.disabled = currentCallPage === 1;
+    if (nextBtn) nextBtn.disabled = currentCallPage === totalCallPages;
+    if (prevMobile) prevMobile.disabled = currentCallPage === 1;
+    if (nextMobile) nextMobile.disabled = currentCallPage === totalCallPages;
+
+    for (let i = 1; i <= totalCallPages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.onclick = () => { currentCallPage = i; loadCalls(); };
+        btn.className = i === currentCallPage
+            ? 'z-10 bg-primary-50 border-primary-500 text-primary-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium'
+            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium';
+        pageNumbersContainer.appendChild(btn);
+    }
+}
+
+function changeCallPage(offset) {
+    const newPage = currentCallPage + offset;
+    if (newPage > 0 && newPage <= totalCallPages) {
+        currentCallPage = newPage;
+        loadCalls();
+    }
+}
+
+function searchLeadFollowup() {
+    currentCallSearchQuery = (document.getElementById('lf-search')?.value || '').trim();
+    currentCallStatusFilter = (document.getElementById('lf-status-filter')?.value || '');
+    currentCallPage = 1;
+    loadCalls();
+}
+
 async function loadCalls() {
     if (!window.api) return;
-    const items = await window.api.getCalls();
+    // Try paginated API first, fallback to getCalls for backward compatibility
+    let items = [];
+    let totalCount = 0;
+    try {
+        const result = await window.api.getCalls(currentCallPage, callItemsPerPage, currentCallSearchQuery, currentCallStatusFilter);
+        if (result && result.rows) {
+            items = result.rows;
+            totalCount = result.totalCount;
+        } else if (Array.isArray(result)) {
+            // Fallback: old API returning plain array
+            items = result;
+            totalCount = result.length;
+        }
+    } catch (e) {
+        const result = await window.api.getCalls();
+        items = Array.isArray(result) ? result : [];
+        totalCount = items.length;
+        // manual filter
+        if (currentCallSearchQuery) {
+            const q = currentCallSearchQuery.toLowerCase();
+            items = items.filter(c => (c.customer_name || '').toLowerCase().includes(q) || (c.phone || '').includes(q));
+        }
+        if (currentCallStatusFilter) {
+            items = items.filter(c => c.status === currentCallStatusFilter || c.call_status === currentCallStatusFilter);
+        }
+        totalCount = items.length;
+        const start = (currentCallPage - 1) * callItemsPerPage;
+        items = items.slice(start, start + callItemsPerPage);
+    }
+
+    callCache.clear();
+    items.forEach(c => callCache.set(c.id, c));
+
     const tbody = document.getElementById('calls-table-body');
     if (!tbody) return;
     tbody.innerHTML = '';
+
+    totalCallPages = Math.ceil(totalCount / callItemsPerPage) || 1;
+    renderCallPagination();
+
+    if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500">No call records found.</td></tr>';
+        return;
+    }
+
     items.forEach(c => {
+        const status = c.status || c.call_status || 'Pending';
+        const statusColor = status === 'Completed' ? 'bg-green-100 text-green-800' :
+            status === 'No Response' ? 'bg-red-100 text-red-800' :
+                'bg-yellow-100 text-yellow-800';
+
+        const followUp = c.next_follow_up ? formatDate(c.next_follow_up) : '-';
+        const followUpClass = c.next_follow_up && new Date(c.next_follow_up) < new Date() && status !== 'Completed'
+            ? 'text-red-600 font-semibold' : 'text-gray-500';
+
         tbody.innerHTML += `
             <tr>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(c.call_date)}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${c.customer_name}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.phone}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.purpose}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.next_follow_up ? formatDate(c.next_follow_up) : '-'}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${formatDate(c.call_date)}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${c.customer_name}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.phone}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.counselor_name || '-'}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.purpose}</td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">${status}</span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm ${followUpClass}">${followUp}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-medium space-x-2">
+                    <button data-action="view-call" data-id="${c.id}" class="text-blue-600 hover:text-blue-900 transition-colors cursor-pointer" title="View Details"><i class="fas fa-eye text-lg"></i></button>
+                    <button data-action="edit-call" data-id="${c.id}" class="text-orange-500 hover:text-orange-700 transition-colors cursor-pointer" title="Edit"><i class="fas fa-edit text-lg"></i></button>
+                    <button data-action="delete-call" data-id="${c.id}" class="text-red-600 hover:text-red-900 transition-colors cursor-pointer" title="Delete"><i class="fas fa-trash-alt text-lg"></i></button>
+                </td>
             </tr>
         `;
     });
+}
+
+function viewCall(id) {
+    const c = callCache.get(id);
+    if (!c) return;
+    document.getElementById('cv-name').value = c.customer_name || '';
+    document.getElementById('cv-phone').value = c.phone || '';
+    document.getElementById('cv-date').value = c.call_date || '';
+    document.getElementById('cv-counselor').value = c.counselor_name || '';
+    document.getElementById('cv-purpose').value = c.purpose || '';
+    document.getElementById('cv-status').value = c.status || c.call_status || 'Pending';
+    document.getElementById('cv-follow').value = c.next_follow_up || '';
+    document.getElementById('cv-notes').value = c.notes || '';
+    openModal('call-view-modal');
+}
+
+function openNewCallModal() {
+    currentEditCallId = null;
+    document.getElementById('call-modal-title').textContent = 'Record New Call';
+    document.getElementById('call-form').reset();
+    document.getElementById('c-date').valueAsDate = new Date();
+    document.getElementById('c-status').value = 'Pending';
+    openModal('call-modal');
+}
+
+function closeCallModal() {
+    currentEditCallId = null;
+    closeModal('call-modal');
+}
+
+async function editCall(id) {
+    const ok = await askPassword('Enter Password to Edit');
+    if (!ok) return;
+
+    const c = callCache.get(id);
+    if (!c) return;
+
+    currentEditCallId = id;
+    document.getElementById('call-modal-title').textContent = 'Edit Call Record';
+    document.getElementById('c-name').value = c.customer_name || '';
+    document.getElementById('c-phone').value = c.phone || '';
+    document.getElementById('c-date').value = c.call_date || '';
+    document.getElementById('c-counselor').value = c.counselor_name || '';
+    document.getElementById('c-purpose').value = c.purpose || '';
+    document.getElementById('c-status').value = c.status || c.call_status || 'Pending';
+    document.getElementById('c-follow').value = c.next_follow_up || '';
+    document.getElementById('c-notes').value = c.notes || '';
+    openModal('call-modal');
+}
+
+async function deleteCall(id) {
+    const ok = await askPassword('Enter Password to Delete');
+    if (!ok) return;
+    const confirmed = await showConfirm('Are you sure you want to delete this call record?', 'Confirm Delete');
+    if (!confirmed) return;
+
+    if (!window.api) return;
+    let res;
+    try { res = await window.api.deleteCall(id); } catch (e) { res = { success: false, error: e.message }; }
+    if (res && res.success) {
+        loadCalls();
+        await showAlert('Call record deleted.', 'Success');
+    } else {
+        await showAlert('Failed to delete: ' + (res ? res.error : 'Unknown error'), 'Error');
+    }
 }
 
 async function saveCall() {
@@ -933,25 +1520,80 @@ async function saveCall() {
         date: document.getElementById('c-date').value,
         counselor: document.getElementById('c-counselor').value,
         purpose: document.getElementById('c-purpose').value,
+        status: document.getElementById('c-status').value,
         follow: document.getElementById('c-follow').value,
         notes: document.getElementById('c-notes').value
     };
 
     if (!data.name || !data.phone || !data.date || !data.counselor) {
-        await showAlert("Please fill required fields.", "Missing Info");
+        await showAlert("Please fill required fields (Name, Phone, Date, Counselor).", "Missing Info");
         return;
     }
 
-    const res = await window.api.addCall(data);
-    if (res.success) {
-        await showAlert("Call recorded successfully!", "Success");
-        closeModal('call-modal');
-        document.getElementById('call-form').reset();
-        document.getElementById('c-date').valueAsDate = new Date();
-        loadCalls();
+    let res;
+    if (currentEditCallId) {
+        data.id = currentEditCallId;
+        try { res = await window.api.updateCall(data); } catch (e) { res = { success: false, error: e.message }; }
     } else {
-        await showAlert("Failed to record call: " + res.error, "Error");
+        res = await window.api.addCall(data);
     }
+
+    if (res && res.success) {
+        await showAlert(currentEditCallId ? "Call record updated!" : "Call recorded successfully!", "Success");
+        closeCallModal();
+        loadCalls();
+
+        // Always refresh Smart Recall if it's currently visible
+        const smartRecallView = document.getElementById('view-smart-recall');
+        const isSmartRecallVisible = smartRecallView && !smartRecallView.classList.contains('hidden');
+        if (isSmartRecallVisible) {
+            await reloadAllSmartRecallSources();
+        } else if (window._recallContext) {
+            // Fallback: direct reload from context if navigated away
+            const { source } = window._recallContext;
+            try {
+                if (source === 'visits') await loadSmartRecallVisits();
+                else if (source === 'calls') await loadSmartRecallCalls();
+                else if (source === 'enquiries') await loadSmartRecallEnquiries();
+            } finally {
+                window._recallContext = null;
+            }
+        }
+        window._recallContext = null;
+    } else {
+        await showAlert("Failed to save: " + (res ? res.error : "Unknown error"), "Error");
+    }
+}
+
+// Setup event delegation for calls table
+document.addEventListener('DOMContentLoaded', () => {
+    const callsTableBody = document.getElementById('calls-table-body');
+    if (callsTableBody) {
+        callsTableBody.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const action = btn.getAttribute('data-action');
+            const id = parseInt(btn.getAttribute('data-id'));
+            if (action === 'view-call') viewCall(id);
+            if (action === 'edit-call') editCall(id);
+            if (action === 'delete-call') deleteCall(id);
+        });
+    }
+});
+
+function recordCallFromRecall(name, phone, source = 'visits') {
+    // Track context so we can remove the row from Smart Recall once saved
+    window._recallContext = { phone, source };
+
+    currentEditCallId = null;
+    document.getElementById('call-modal-title').textContent = 'Record New Call';
+    document.getElementById('call-form').reset();
+    document.getElementById('c-name').value = name;
+    document.getElementById('c-phone').value = phone;
+    document.getElementById('c-date').valueAsDate = new Date();
+    document.getElementById('c-purpose').value = 'Recall - Inactive Customer';
+    document.getElementById('c-status').value = 'Pending';
+    openModal('call-modal');
 }
 
 async function loadExpenses() {
@@ -998,28 +1640,104 @@ async function saveExpense() {
     }
 }
 
-async function loadSmartRecall() {
+// ========== SMART RECALL ==========
+
+// Visits-based recall data
+let recallVisitsData = [];
+// Calls-based recall data
+let recallCallsData = [];
+// Enquiry-based recall data
+let recallEnquiriesData = [];
+
+// Helper: reload all three sources with current days filter
+async function reloadAllSmartRecallSources() {
+    await Promise.all([
+        loadSmartRecallVisits(),
+        loadSmartRecallCalls(),
+        loadSmartRecallEnquiries()
+    ]);
+}
+
+// ---- Visits Smart Recall ----
+async function loadSmartRecallVisits() {
     if (!window.api) return;
-    const items = await window.api.getSmartRecall();
-    const tbody = document.getElementById('recall-table-body');
+    const daysFilter = parseInt(document.getElementById('sr-days-filter')?.value || '30');
+    const items = await window.api.getSmartRecall(daysFilter);
+    recallVisitsData = Array.isArray(items) ? items : [];
+
+    const countLabel = document.getElementById('sr-visits-count');
+    if (countLabel) {
+        countLabel.textContent = `${recallVisitsData.length} inactive customer${recallVisitsData.length !== 1 ? 's' : ''} found`;
+    }
+
+    filterSmartRecallVisits();
+}
+
+function filterSmartRecallVisits() {
+    const query = (document.getElementById('sr-search')?.value || '').trim().toLowerCase();
+    const tbody = document.getElementById('recall-visits-body');
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No overdue customers found.</td></tr>';
+    let filtered = recallVisitsData;
+    if (query) {
+        filtered = recallVisitsData.filter(c =>
+            (c.name || '').toLowerCase().includes(query) ||
+            (c.phone || '').includes(query)
+        );
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">No inactive customers found.</td></tr>';
         return;
     }
 
-    items.forEach(c => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    filtered.forEach(c => {
+        const lastVisitDate = c.last_visit ? new Date(c.last_visit) : null;
+        let daysInactive = '-';
+        let urgencyClass = 'bg-orange-100 text-orange-800';
+
+        if (lastVisitDate && !isNaN(lastVisitDate.getTime())) {
+            const diffDays = Math.floor((today - lastVisitDate) / (1000 * 60 * 60 * 24));
+            daysInactive = diffDays;
+            urgencyClass = diffDays >= 90
+                ? 'bg-red-200 text-red-900 font-bold'
+                : diffDays >= 60
+                    ? 'bg-red-100 text-red-800 font-semibold'
+                    : 'bg-orange-100 text-orange-800';
+        }
+
+        const totalSpent = c.total_spent ? `₹${Number(c.total_spent).toLocaleString()}` : '-';
+        const isGuest = c.phone && c.phone.startsWith('GUEST-');
+        const displayPhone = isGuest ? '-' : (c.phone || '-');
+
         tbody.innerHTML += `
             <tr>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${c.name}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.phone}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-500 font-semibold">${formatDate(c.last_visit)}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.total_visits}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <button class="btn-primary text-xs" onclick="recordCallFromRecall('${c.name}', '${c.phone}')">
-                        <i class="fas fa-phone"></i> Call
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${c.name}</div>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${displayPhone}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-red-600 font-semibold">${formatDate(c.last_visit)}</td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${urgencyClass}">
+                        ${daysInactive} days
+                    </span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.total_visits}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-600">${totalSpent}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-medium space-x-2">
+                    <button class="text-primary-600 hover:text-primary-900 transition-colors cursor-pointer"
+                        onclick="recordCallFromRecall('${(c.name || '').replace(/'/g, "\\'")}', '${displayPhone !== '-' ? displayPhone : ''}', 'visits')"
+                        title="Log a Call">
+                        <i class="fas fa-phone-alt text-lg"></i>
+                    </button>
+                    <button class="text-blue-600 hover:text-blue-900 transition-colors cursor-pointer"
+                        onclick="openCustomerHistoryFromRecall('${(c.name || '').replace(/'/g, "\\'")}', '${displayPhone !== '-' ? displayPhone : ''}')"
+                        title="View Customer History">
+                        <i class="fas fa-history text-lg"></i>
                     </button>
                 </td>
             </tr>
@@ -1027,13 +1745,238 @@ async function loadSmartRecall() {
     });
 }
 
-function recordCallFromRecall(name, phone) {
-    // Open call modal and pre-fill data
-    openModal('call-modal');
-    document.getElementById('c-name').value = name;
-    document.getElementById('c-phone').value = phone;
-    document.getElementById('c-date').valueAsDate = new Date();
-    document.getElementById('c-purpose').value = 'Other';
+// ---- Calls Smart Recall ----
+async function loadSmartRecallCalls() {
+    if (!window.api) return;
+    const daysFilter = parseInt(document.getElementById('sr-days-filter')?.value || '30');
+    const items = await window.api.getSmartRecallCalls(daysFilter);
+    recallCallsData = Array.isArray(items) ? items : [];
+
+    const countLabel = document.getElementById('sr-calls-count');
+    if (countLabel) {
+        countLabel.textContent = `${recallCallsData.length} customer${recallCallsData.length !== 1 ? 's' : ''} with pending calls`;
+    }
+
+    renderSmartRecallCalls();
+}
+
+function renderSmartRecallCalls() {
+    const query = (document.getElementById('sr-search')?.value || '').trim().toLowerCase();
+    const tbody = document.getElementById('recall-calls-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    let filtered = recallCallsData;
+    if (query) {
+        filtered = recallCallsData.filter(c =>
+            (c.customer_name || '').toLowerCase().includes(query) ||
+            (c.phone || '').includes(query)
+        );
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No pending follow-up calls found.</td></tr>';
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    filtered.forEach(c => {
+        const refDateStr = c.last_follow_up || c.last_call;
+        const refDate = refDateStr ? new Date(refDateStr) : null;
+        let daysPending = '-';
+        let urgencyClass = 'bg-orange-100 text-orange-800';
+
+        if (refDate && !isNaN(refDate.getTime())) {
+            const diffDays = Math.floor((today - refDate) / (1000 * 60 * 60 * 24));
+            daysPending = diffDays;
+            urgencyClass = diffDays >= 90
+                ? 'bg-red-200 text-red-900 font-bold'
+                : diffDays >= 60
+                    ? 'bg-red-100 text-red-800 font-semibold'
+                    : 'bg-orange-100 text-orange-800';
+        }
+
+        const isGuest = c.phone && c.phone.startsWith('GUEST-');
+        const displayPhone = isGuest ? '-' : (c.phone || '-');
+
+        const nextFollowUp = c.last_follow_up ? formatDate(c.last_follow_up) : '-';
+        const followUpClass = c.last_follow_up && new Date(c.last_follow_up) < new Date() ? 'text-red-600 font-semibold' : 'text-gray-500';
+
+        tbody.innerHTML += `
+            <tr>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${c.customer_name}</div>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${displayPhone}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                    ${formatDate(c.last_call)}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm ${followUpClass}">
+                    ${nextFollowUp}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${urgencyClass}">
+                        ${daysPending} days
+                    </span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.total_calls}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-medium space-x-2">
+                    <button class="text-primary-600 hover:text-primary-900 transition-colors cursor-pointer"
+                        onclick="recordCallFromRecall('${(c.customer_name || '').replace(/'/g, "\\'")}', '${displayPhone !== '-' ? displayPhone : ''}', 'calls')"
+                        title="Log a Call">
+                        <i class="fas fa-phone-alt text-lg"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+// ---- Enquiries Smart Recall ----
+async function loadSmartRecallEnquiries() {
+    if (!window.api) return;
+    const daysFilter = parseInt(document.getElementById('sr-days-filter')?.value || '30');
+    const items = await window.api.getSmartRecallEnquiries(daysFilter);
+    recallEnquiriesData = Array.isArray(items) ? items : [];
+
+    const countLabel = document.getElementById('sr-enquiries-count');
+    if (countLabel) {
+        countLabel.textContent = `${recallEnquiriesData.length} customer${recallEnquiriesData.length !== 1 ? 's' : ''} with old enquiries`;
+    }
+
+    renderSmartRecallEnquiries();
+}
+
+function renderSmartRecallEnquiries() {
+    const query = (document.getElementById('sr-search')?.value || '').trim().toLowerCase();
+    const tbody = document.getElementById('recall-enquiries-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    let filtered = recallEnquiriesData;
+    if (query) {
+        filtered = recallEnquiriesData.filter(c =>
+            (c.customer_name || '').toLowerCase().includes(query) ||
+            (c.phone || '').includes(query)
+        );
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No stale enquiries found.</td></tr>';
+        return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    filtered.forEach(c => {
+        const refDateStr = c.last_follow_up || c.last_enquiry;
+        const refDate = refDateStr ? new Date(refDateStr) : null;
+        let daysPending = '-';
+        let urgencyClass = 'bg-orange-100 text-orange-800';
+
+        if (refDate && !isNaN(refDate.getTime())) {
+            const diffDays = Math.floor((today - refDate) / (1000 * 60 * 60 * 24));
+            daysPending = diffDays;
+            urgencyClass = diffDays >= 90
+                ? 'bg-red-200 text-red-900 font-bold'
+                : diffDays >= 60
+                    ? 'bg-red-100 text-red-800 font-semibold'
+                    : 'bg-orange-100 text-orange-800';
+        }
+
+        const isGuest = c.phone && c.phone.startsWith('GUEST-');
+        const displayPhone = isGuest ? '-' : (c.phone || '-');
+
+        const nextFollowUp = c.last_follow_up ? formatDate(c.last_follow_up) : '-';
+        const followUpClass = c.last_follow_up && new Date(c.last_follow_up) < new Date() ? 'text-red-600 font-semibold' : 'text-gray-500';
+
+        tbody.innerHTML += `
+            <tr>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${c.customer_name}</div>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${displayPhone}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                    ${formatDate(c.last_enquiry)}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm ${followUpClass}">
+                    ${nextFollowUp}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${urgencyClass}">
+                        ${daysPending} days
+                    </span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.total_enquiries}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-medium space-x-2">
+                    <button class="text-primary-600 hover:text-primary-900 transition-colors cursor-pointer"
+                        onclick="recordCallFromRecall('${(c.customer_name || '').replace(/'/g, "\\'")}', '${displayPhone !== '-' ? displayPhone : ''}', 'enquiries')"
+                        title="Log a Call">
+                        <i class="fas fa-phone-alt text-lg"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+// ---- Smart Recall Tabs & Search ----
+
+function setSmartRecallTab(tab) {
+    const panels = {
+        visits: document.getElementById('sr-panel-visits'),
+        calls: document.getElementById('sr-panel-calls'),
+        enquiries: document.getElementById('sr-panel-enquiries')
+    };
+    const tabs = {
+        visits: document.getElementById('sr-tab-visits'),
+        calls: document.getElementById('sr-tab-calls'),
+        enquiries: document.getElementById('sr-tab-enquiries')
+    };
+
+    Object.keys(panels).forEach(key => {
+        if (!panels[key] || !tabs[key]) return;
+        if (key === tab) {
+            panels[key].classList.remove('hidden');
+            tabs[key].classList.add('border-primary-500', 'text-primary-600');
+            tabs[key].classList.remove('border-transparent', 'text-gray-500');
+        } else {
+            panels[key].classList.add('hidden');
+            tabs[key].classList.remove('border-primary-500', 'text-primary-600');
+            tabs[key].classList.add('border-transparent', 'text-gray-500');
+        }
+    });
+
+    // Re-apply search filter to the active tab
+    filterSmartRecallCurrentTab();
+}
+
+function filterSmartRecallCurrentTab() {
+    const activeVisits = !document.getElementById('sr-panel-visits')?.classList.contains('hidden');
+    const activeCalls = !document.getElementById('sr-panel-calls')?.classList.contains('hidden');
+    if (activeVisits) {
+        filterSmartRecallVisits();
+    } else if (activeCalls) {
+        renderSmartRecallCalls();
+    } else {
+        renderSmartRecallEnquiries();
+    }
+}
+
+function openCustomerHistoryFromRecall(name, phone) {
+    // Navigate to Customer History view and pre-fill search
+    const navItem = document.querySelector('[data-target="customer-history"]');
+    if (navItem) navItem.click();
+    setTimeout(() => {
+        const searchInput = document.getElementById('ch-search');
+        if (searchInput) {
+            searchInput.value = phone || name;
+            searchCustomers();
+        }
+    }, 100);
 }
 
 async function searchCustomers() {
@@ -1088,29 +2031,65 @@ async function viewCustomerDetails(id) {
     // Set global for merge modal reference
     window.currentViewedCustomer = customer;
 
+    // --- Visits ---
     const tbody = document.getElementById('ch-visits-body');
     tbody.innerHTML = '';
 
     if (visits.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-3 text-center text-sm text-gray-500">No visits recorded.</td></tr>';
-        return;
+    } else {
+        visits.forEach(v => {
+            tbody.innerHTML += `
+                <tr>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${formatDate(v.visit_date)}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${v.therapist_name || '-'}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${v.package_name}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">₹${v.package_price}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${v.extra_services || '-'}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">₹${v.extra_amount || 0}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600 font-bold">₹${v.paid_amount}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${v.payment_method}</td>
+                    <td class="px-4 py-3 text-sm text-gray-500 truncate max-w-[150px]" title="${v.notes || ''}">${v.notes || '-'}</td>
+                </tr>
+            `;
+        });
     }
 
-    visits.forEach(v => {
-        tbody.innerHTML += `
-            <tr>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${formatDate(v.visit_date)}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${v.therapist_name || '-'}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${v.package_name}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">₹${v.package_price}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${v.extra_services || '-'}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">₹${v.extra_amount || 0}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600 font-bold">₹${v.paid_amount}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${v.payment_method}</td>
-                <td class="px-4 py-3 text-sm text-gray-500 truncate max-w-[150px]" title="${v.notes || ''}">${v.notes || '-'}</td>
-            </tr>
-        `;
-    });
+    // --- Call History ---
+    const phone = (customer.phone && customer.phone.startsWith('GUEST-')) ? null : customer.phone;
+    const callsBody = document.getElementById('ch-calls-body');
+    const callsSection = document.getElementById('ch-calls-section');
+    if (callsBody && callsSection) {
+        callsBody.innerHTML = '';
+        if (phone) {
+            const calls = await window.api.getCustomerCalls(phone);
+            if (calls && calls.length > 0) {
+                callsSection.classList.remove('hidden');
+                calls.forEach(c => {
+                    const statusColor = c.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                        c.status === 'No Response' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800';
+                    callsBody.innerHTML += `
+                        <tr>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${formatDate(c.call_date)}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.counselor_name || '-'}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${c.purpose || '-'}</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">${c.status}</span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${c.next_follow_up ? formatDate(c.next_follow_up) : '-'}</td>
+                            <td class="px-4 py-3 text-sm text-gray-500 truncate max-w-[120px]" title="${c.notes || ''}">${c.notes || '-'}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                callsSection.classList.remove('hidden');
+                callsBody.innerHTML = '<tr><td colspan="6" class="px-4 py-3 text-center text-sm text-gray-500">No call records found.</td></tr>';
+            }
+        } else {
+            callsSection.classList.add('hidden');
+        }
+    }
 }
 
 function openMergeModal() {
@@ -1206,9 +2185,298 @@ async function confirmMerge() {
             // Refresh the current customer details and history search
             viewCustomerDetails(primaryId);
             searchCustomers();
-            initDashboard('monthly'); // Refresh stats since things moved
+            initDashboard(document.getElementById('dash-filter')?.value || 'all'); // Refresh stats since things moved
         } else {
             await showAlert('Failed to merge: ' + res.error, 'Error');
         }
+    }
+}
+
+// ==================== EXPENSE SECTION ====================
+
+let currentExpensePage = 1;
+const expenseItemsPerPage = 10;
+let totalExpensePages = 1;
+let currentExpenseSearchQuery = '';
+let currentEditExpenseId = null;
+const expenseCache = new Map();
+
+async function loadExpenses(searchQuery = currentExpenseSearchQuery) {
+    if (!window.api) return;
+    const { rows, totalCount } = await window.api.getExpenses(currentExpensePage, expenseItemsPerPage, searchQuery);
+
+    const tbody = document.getElementById('expenses-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    expenseCache.clear();
+
+    totalExpensePages = Math.ceil(totalCount / expenseItemsPerPage) || 1;
+    renderExpensePagination();
+
+    if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-sm text-gray-500"><i class="fas fa-receipt text-3xl text-gray-300 mb-2 block"></i>No expenses found.</td></tr>';
+        return;
+    }
+
+    rows.forEach((exp, index) => {
+        expenseCache.set(exp.id, exp);
+        const srNo = (currentExpensePage - 1) * expenseItemsPerPage + (index + 1);
+        const formattedDate = formatDate(exp.expense_date);
+
+        const categoryColors = {
+            'Staff Salary': 'bg-blue-100 text-blue-800',
+            'Oil / Products': 'bg-amber-100 text-amber-800',
+            'Rent': 'bg-red-100 text-red-800',
+            'Utilities': 'bg-cyan-100 text-cyan-800',
+            'Marketing': 'bg-purple-100 text-purple-800',
+            'Maintenance': 'bg-orange-100 text-orange-800',
+            'Equipment': 'bg-indigo-100 text-indigo-800',
+            'Other': 'bg-gray-100 text-gray-800'
+        };
+        const catColor = categoryColors[exp.category] || 'bg-gray-100 text-gray-800';
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50 transition-colors';
+        tr.innerHTML = `
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${srNo}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${formattedDate}</td>
+            <td class="px-4 py-3 whitespace-nowrap">
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${catColor}">${exp.category}</span>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-red-600">₹${Number(exp.amount).toLocaleString()}</td>
+            <td class="px-4 py-3 text-sm text-gray-500 truncate max-w-[200px]" title="${exp.remarks || ''}">${exp.remarks || '-'}</td>
+            <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-medium space-x-2">
+                <button data-action="view-exp" data-id="${exp.id}" class="text-blue-600 hover:text-blue-900 transition-colors cursor-pointer" title="View">
+                    <i class="fas fa-eye text-lg"></i>
+                </button>
+                <button data-action="edit-exp" data-id="${exp.id}" class="text-orange-500 hover:text-orange-700 transition-colors cursor-pointer" title="Edit">
+                    <i class="fas fa-edit text-lg"></i>
+                </button>
+                <button data-action="delete-exp" data-id="${exp.id}" class="text-red-600 hover:text-red-900 transition-colors cursor-pointer" title="Delete">
+                    <i class="fas fa-trash-alt text-lg"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // Load summary cards
+    loadExpenseSummary();
+}
+
+function renderExpensePagination() {
+    const pageNumbersContainer = document.getElementById('exp-page-numbers');
+    if (!pageNumbersContainer) return;
+    pageNumbersContainer.innerHTML = '';
+
+    const prevBtn = document.getElementById('exp-prev-btn');
+    const nextBtn = document.getElementById('exp-next-btn');
+    const prevMobile = document.getElementById('exp-prev-mobile');
+    const nextMobile = document.getElementById('exp-next-mobile');
+
+    if (prevBtn) prevBtn.disabled = currentExpensePage === 1;
+    if (nextBtn) nextBtn.disabled = currentExpensePage === totalExpensePages;
+    if (prevMobile) prevMobile.disabled = currentExpensePage === 1;
+    if (nextMobile) nextMobile.disabled = currentExpensePage === totalExpensePages;
+
+    for (let i = 1; i <= totalExpensePages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.onclick = () => {
+            currentExpensePage = i;
+            loadExpenses();
+        };
+        if (i === currentExpensePage) {
+            btn.className = 'z-10 bg-primary-50 border-primary-500 text-primary-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium';
+        } else {
+            btn.className = 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium';
+        }
+        pageNumbersContainer.appendChild(btn);
+    }
+}
+
+function changeExpensePage(offset) {
+    const newPage = currentExpensePage + offset;
+    if (newPage > 0 && newPage <= totalExpensePages) {
+        currentExpensePage = newPage;
+        loadExpenses();
+    }
+}
+
+function searchExpenses() {
+    const query = document.getElementById('exp-search').value.trim();
+    currentExpenseSearchQuery = query;
+    currentExpensePage = 1;
+    loadExpenses();
+}
+
+function openExpenseModal(editId) {
+    if (editId) {
+        currentEditExpenseId = editId;
+        document.getElementById('expense-modal-title').textContent = 'Edit Expense';
+        const exp = expenseCache.get(editId);
+        if (exp) {
+            document.getElementById('ex-id').value = exp.id;
+            document.getElementById('ex-date').value = exp.expense_date;
+            document.getElementById('ex-category').value = exp.category;
+            document.getElementById('ex-amount').value = exp.amount;
+            document.getElementById('ex-remarks').value = exp.remarks || '';
+        }
+    } else {
+        currentEditExpenseId = null;
+        document.getElementById('expense-modal-title').textContent = 'Add Expense';
+        document.getElementById('expense-form').reset();
+        document.getElementById('ex-id').value = '';
+        document.getElementById('ex-date').valueAsDate = new Date();
+    }
+    openModal('expense-modal');
+}
+
+async function saveExpense() {
+    const date = document.getElementById('ex-date').value;
+    const category = document.getElementById('ex-category').value;
+    const amount = document.getElementById('ex-amount').value;
+    const remarks = document.getElementById('ex-remarks').value;
+
+    if (!date || !category || !amount) {
+        await showAlert('Please fill in Date, Category and Amount.', 'Missing Fields');
+        return;
+    }
+
+    if (!window.api) return;
+
+    let result;
+    if (currentEditExpenseId) {
+        result = await window.api.updateExpense({
+            id: currentEditExpenseId,
+            date, category,
+            amount: parseFloat(amount),
+            remarks
+        });
+    } else {
+        result = await window.api.addExpense({
+            date, category,
+            amount: parseFloat(amount),
+            remarks
+        });
+    }
+
+    if (result.success) {
+        closeModal('expense-modal');
+        loadExpenses();
+        await showAlert(currentEditExpenseId ? 'Expense updated successfully!' : 'Expense added successfully!', 'Success');
+    } else {
+        await showAlert('Error: ' + result.error, 'Error');
+    }
+}
+
+async function viewExpense(id) {
+    const exp = expenseCache.get(id);
+    if (!exp) return;
+
+    document.getElementById('exv-date').value = formatDate(exp.expense_date);
+    document.getElementById('exv-category').value = exp.category;
+    document.getElementById('exv-amount').value = '₹' + Number(exp.amount).toLocaleString();
+    document.getElementById('exv-remarks').value = exp.remarks || '-';
+
+    openModal('expense-view-modal');
+}
+
+async function editExpense(id) {
+    const ok = await askPassword('Enter Password to Edit Expense');
+    if (!ok) return;
+    openExpenseModal(id);
+}
+
+async function deleteExpense(id) {
+    const ok = await askPassword('Enter Password to Delete Expense');
+    if (!ok) return;
+
+    const confirmed = await showConfirm('Are you sure you want to delete this expense? This cannot be undone.', 'Confirm Delete');
+    if (!confirmed) return;
+
+    if (!window.api) return;
+    const result = await window.api.deleteExpense(id);
+    if (result.success) {
+        loadExpenses();
+        await showAlert('Expense deleted successfully.', 'Deleted');
+    } else {
+        await showAlert('Error: ' + result.error, 'Error');
+    }
+}
+
+async function loadExpenseSummary() {
+    if (!window.api) return;
+    try {
+        const summary = await window.api.getExpenseSummary();
+        document.getElementById('exp-total').textContent = '₹' + Number(summary.totalExpenses).toLocaleString();
+        document.getElementById('exp-monthly').textContent = '₹' + Number(summary.monthlyExpenses).toLocaleString();
+
+        if (summary.categoryBreakdown && summary.categoryBreakdown.length > 0) {
+            document.getElementById('exp-top-cat').textContent = summary.categoryBreakdown[0].category;
+        } else {
+            document.getElementById('exp-top-cat').textContent = '--';
+        }
+    } catch(e) {
+        console.error('Expense summary error:', e);
+    }
+}
+
+// Event delegation for expense table action buttons
+document.addEventListener('DOMContentLoaded', () => {
+    const expensesTableBody = document.getElementById('expenses-table-body');
+    if (expensesTableBody) {
+        expensesTableBody.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const action = btn.getAttribute('data-action');
+            const id = parseInt(btn.getAttribute('data-id'));
+            if (action === 'view-exp') viewExpense(id);
+            if (action === 'edit-exp') editExpense(id);
+            if (action === 'delete-exp') deleteExpense(id);
+        });
+    }
+});
+
+async function exportCustomersCSV() {
+    if (!window.api) return;
+    
+    try {
+        const customers = await window.api.exportAllCustomers();
+        
+        if (!customers || customers.length === 0) {
+            await showAlert("No valid customers found to export.", "Empty Export");
+            return;
+        }
+
+        let csvContent = "Name,Phone Number\n";
+        
+        customers.forEach(customer => {
+            // Escape names that might have commas formatting issues in CSV
+            let sanitizedName = customer.name;
+            if (sanitizedName.includes(',') || sanitizedName.includes('"')) {
+                sanitizedName = `"${sanitizedName.replace(/"/g, '""')}"`;
+            }
+            csvContent += `${sanitizedName},${customer.phone}\n`;
+        });
+
+        // Trigger CSV Download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement("a");
+        const dateString = new Date().toISOString().split('T')[0];
+        link.setAttribute("href", url);
+        link.setAttribute("download", `customer_export_${dateString}.csv`);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        await showAlert(`Successfully exported ${customers.length} unique customer numbers.`, "Export Complete");
+    } catch (error) {
+        console.error("Export Error:", error);
+        await showAlert("Failed to export customers. " + error.message, "Export Error");
     }
 }
